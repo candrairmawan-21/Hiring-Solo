@@ -623,6 +623,352 @@
     }
 </style>
 
+
+<style id="dashboard-reference-ui">
+/* ============================================================
+   DASHBOARD REFERENCE UI
+   Day = warm cartographic / editorial
+   Night = Tron command center / neon data viz
+   ============================================================ */
+
+body.theme-day{
+    --ink-strong:#34251f;
+    --ink-body:#4b3c35;
+    --ink-muted:#7d6a60;
+    --surface-main:#fffaf5;
+    --surface-soft:#f7eee5;
+    --border-main:#e7d5c6;
+    --accent-main:#b95638;
+    --accent-deep:#8e3d29;
+}
+
+body.theme-night{
+    --ink-strong:#f1fbff;
+    --ink-body:#c6e8ee;
+    --ink-muted:#79a6b1;
+    --surface-main:#06121d;
+    --surface-soft:#081a29;
+    --border-main:rgba(39,231,255,.22);
+    --accent-main:#27e7ff;
+    --accent-deep:#00a8c0;
+}
+
+/* ---------- Header ---------- */
+body.theme-day .app-header{
+    background:rgba(255,250,245,.94)!important;
+    border-bottom:1px solid #e6d5c7!important;
+    box-shadow:0 8px 24px rgba(92,58,40,.08)!important;
+    color:#34251f!important;
+}
+body.theme-day .app-header:after{display:none}
+
+body.theme-day .app-header h1{color:#34251f!important}
+body.theme-day .app-header p{color:#806c61!important}
+
+body.theme-day .top-nav{
+    background:rgba(248,239,230,.78)!important;
+    border-color:#e4d2c3!important;
+}
+body.theme-day .top-nav button{
+    color:#66564e!important;
+}
+body.theme-day .top-nav button:hover{
+    background:#fffaf5!important;
+    color:#8e3d29!important;
+}
+body.theme-day .top-nav button.is-active{
+    color:#8e3d29!important;
+    background:#fffaf5!important;
+    box-shadow:0 5px 15px rgba(142,61,41,.10)!important;
+    border-color:#e4c7b7!important;
+}
+body.theme-day .theme-switch{
+    background:#f7eee5!important;
+    border-color:#e4d2c3!important;
+}
+body.theme-day .theme-switch button{color:#806c61}
+body.theme-day .theme-switch button:hover{color:#8e3d29;background:#fffaf5}
+
+/* ---------- Global text contrast ---------- */
+body.theme-day .text-slate-800,
+body.theme-day .text-slate-700,
+body.theme-day .text-slate-600{
+    color:var(--ink-strong)!important;
+}
+body.theme-day .text-slate-500,
+body.theme-day .text-slate-400,
+body.theme-day .text-slate-300{
+    color:var(--ink-muted)!important;
+}
+body.theme-day .text-slate-200{
+    color:#625047!important;
+}
+
+body.theme-night .text-slate-800,
+body.theme-night .text-slate-700,
+body.theme-night .text-slate-600{
+    color:var(--ink-strong)!important;
+}
+body.theme-night .text-slate-500,
+body.theme-night .text-slate-400{
+    color:var(--ink-muted)!important;
+}
+body.theme-night .text-slate-300{
+    color:#a8d0d8!important;
+}
+body.theme-night .text-slate-200{
+    color:#c6e8ee!important;
+}
+
+/* Make section headings strongly readable */
+body.theme-day section h2{color:#34251f!important}
+body.theme-day section h2 + p{color:#806c61!important}
+body.theme-night section h2{
+    color:#e9fbff!important;
+    text-shadow:0 0 16px rgba(39,231,255,.20);
+}
+body.theme-night section h2 + p{color:#78a4af!important}
+
+/* ---------- Dashboard canvas ---------- */
+#view-dashboard{
+    position:relative;
+}
+body.theme-day #view-dashboard{
+    background:
+        radial-gradient(circle at 82% 5%,rgba(193,115,76,.10),transparent 25%);
+}
+body.theme-night #view-dashboard{
+    background:
+        radial-gradient(circle at 12% 4%,rgba(255,51,102,.08),transparent 24%),
+        radial-gradient(circle at 88% 78%,rgba(0,229,255,.08),transparent 25%);
+}
+
+/* ---------- Dashboard metric cards ---------- */
+#view-dashboard .grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:16px!important;
+}
+
+#view-dashboard .grid > div{
+    min-height:136px!important;
+    padding:20px!important;
+    border-radius:16px!important;
+    background:var(--surface-main)!important;
+    border:1px solid var(--border-main)!important;
+    box-shadow:var(--theme-shadow)!important;
+    position:relative;
+    isolation:isolate;
+}
+
+#view-dashboard .grid > div:after{
+    content:"";
+    position:absolute;
+    right:-28px;
+    top:-32px;
+    width:92px;height:92px;
+    border-radius:50%;
+    background:var(--theme-glow);
+    filter:blur(18px);
+    opacity:.7;
+    z-index:-1;
+}
+
+#view-dashboard .grid > div h3{
+    font-size:2rem!important;
+    line-height:1!important;
+    margin-top:7px!important;
+    color:var(--ink-strong)!important;
+}
+
+body.theme-day #view-dashboard .grid > div h3{
+    color:#34251f!important;
+}
+body.theme-night #view-dashboard .grid > div h3{
+    color:#effcff!important;
+    text-shadow:0 0 12px rgba(39,231,255,.16);
+}
+
+#view-dashboard .grid > div p{
+    color:var(--ink-muted)!important;
+}
+
+body.theme-night #view-dashboard .grid > div{
+    background:linear-gradient(145deg,#071624,#06111c)!important;
+    border-color:rgba(39,231,255,.20)!important;
+    box-shadow:
+        inset 0 0 30px rgba(0,0,0,.18),
+        0 0 0 1px rgba(39,231,255,.035),
+        0 12px 34px rgba(0,0,0,.34)!important;
+}
+body.theme-night #view-dashboard .grid > div:before{
+    width:3px!important;
+    background:#27e7ff!important;
+    box-shadow:0 0 15px #27e7ff,0 0 28px rgba(39,231,255,.65);
+}
+body.theme-night #view-dashboard .grid > div:nth-child(2):before{
+    background:#ff4f81!important;
+    box-shadow:0 0 15px #ff4f81,0 0 28px rgba(255,79,129,.55);
+}
+body.theme-night #view-dashboard .grid > div:nth-child(3):before{
+    background:#b86cff!important;
+    box-shadow:0 0 15px #b86cff,0 0 28px rgba(184,108,255,.55);
+}
+body.theme-night #view-dashboard .grid > div:nth-child(4):before{
+    background:#36ffc4!important;
+    box-shadow:0 0 15px #36ffc4,0 0 28px rgba(54,255,196,.55);
+}
+
+/* metric icon contrast */
+body.theme-day #view-dashboard .grid > div .bg-\[\#f8ece8\]{
+    background:#f2ddd2!important;color:#9b442c!important;
+}
+body.theme-night #view-dashboard .grid > div > div:last-child{
+    background:rgba(39,231,255,.07)!important;
+    color:#27e7ff!important;
+    border:1px solid rgba(39,231,255,.20);
+    box-shadow:0 0 18px rgba(39,231,255,.08);
+}
+
+/* ---------- Dashboard data visualization panel ---------- */
+#view-dashboard .bg-white.p-6{
+    background:var(--surface-main)!important;
+    border:1px solid var(--border-main)!important;
+    border-radius:18px!important;
+    box-shadow:var(--theme-shadow)!important;
+}
+
+body.theme-day #view-dashboard .bg-white.p-6{
+    background:rgba(255,250,245,.90)!important;
+}
+
+body.theme-night #view-dashboard .bg-white.p-6{
+    background:linear-gradient(145deg,#06131f,#04101a)!important;
+    border-color:rgba(39,231,255,.22)!important;
+    box-shadow:
+        inset 0 0 38px rgba(0,0,0,.2),
+        0 0 0 1px rgba(39,231,255,.035),
+        0 18px 50px rgba(0,0,0,.38)!important;
+}
+
+body.theme-night #view-dashboard .bg-white.p-6 h3{
+    color:#eaffff!important;
+}
+body.theme-night #view-dashboard .bg-white.p-6 h3 i{
+    color:#ff4f81!important;
+    text-shadow:0 0 12px #ff4f81;
+}
+
+/* The dynamic position bars become neon chart bars in Night mode. */
+body.theme-night #dashboard-position-bars{
+    position:relative;
+    padding:8px 2px;
+}
+body.theme-night #dashboard-position-bars:before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+        linear-gradient(rgba(39,231,255,.08) 1px,transparent 1px);
+    background-size:100% 34px;
+    pointer-events:none;
+    opacity:.8;
+}
+
+body.theme-night #dashboard-position-bars > *{
+    position:relative;
+    z-index:1;
+    color:#dffcff!important;
+}
+
+/* Broad selectors cover common bar implementations generated by dashboard.js. */
+body.theme-night #dashboard-position-bars [class*="bg-"]{
+    transition:.25s ease;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(1) [class*="bg-"]{
+    background:linear-gradient(90deg,#ff315f,#ff6f91)!important;
+    box-shadow:0 0 10px #ff315f,0 0 22px rgba(255,49,95,.55)!important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(2) [class*="bg-"]{
+    background:linear-gradient(90deg,#ff7a3d,#ffc14d)!important;
+    box-shadow:0 0 10px #ff7a3d,0 0 22px rgba(255,122,61,.50)!important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(3) [class*="bg-"]{
+    background:linear-gradient(90deg,#a95cff,#df7cff)!important;
+    box-shadow:0 0 10px #a95cff,0 0 22px rgba(169,92,255,.50)!important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(4) [class*="bg-"]{
+    background:linear-gradient(90deg,#19d9ff,#45a7ff)!important;
+    box-shadow:0 0 10px #19d9ff,0 0 22px rgba(25,217,255,.50)!important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(5) [class*="bg-"]{
+    background:linear-gradient(90deg,#28efb0,#b8ff5b)!important;
+    box-shadow:0 0 10px #28efb0,0 0 22px rgba(40,239,176,.45)!important;
+}
+
+/* ---------- Dashboard chart labels ---------- */
+body.theme-day #dashboard-position-bars .text-slate-800,
+body.theme-day #dashboard-position-bars .text-slate-700,
+body.theme-day #dashboard-position-bars .text-slate-600{
+    color:#49372f!important;
+}
+body.theme-day #dashboard-position-bars .text-slate-500,
+body.theme-day #dashboard-position-bars .text-slate-400{
+    color:#806c61!important;
+}
+body.theme-night #dashboard-position-bars .text-slate-800,
+body.theme-night #dashboard-position-bars .text-slate-700,
+body.theme-night #dashboard-position-bars .text-slate-600{
+    color:#e7fbff!important;
+}
+body.theme-night #dashboard-position-bars .text-slate-500,
+body.theme-night #dashboard-position-bars .text-slate-400{
+    color:#7fa9b4!important;
+}
+
+/* ---------- Screening / Pipeline / Database contrast ---------- */
+body.theme-night #view-screening,
+body.theme-night #view-pipeline,
+body.theme-night #view-database{
+    color:#dffcff;
+}
+
+body.theme-night #view-screening .bg-slate-50,
+body.theme-night #view-screening .bg-slate-100,
+body.theme-night #view-database .bg-slate-50,
+body.theme-night #view-database .bg-slate-100{
+    background:#081a29!important;
+    color:#dffcff!important;
+}
+
+body.theme-night #view-screening label,
+body.theme-night #view-pipeline label,
+body.theme-night #view-database label{
+    color:#8fb6c0!important;
+}
+
+body.theme-night button{
+    text-shadow:0 0 8px rgba(39,231,255,.04);
+}
+
+/* Status colors stay intentionally vivid in Night mode */
+body.theme-night .text-emerald-600,
+body.theme-night .text-emerald-500{color:#36ffc4!important;text-shadow:0 0 10px rgba(54,255,196,.25)}
+body.theme-night .text-amber-600,
+body.theme-night .text-amber-500{color:#ffc14d!important;text-shadow:0 0 10px rgba(255,193,77,.25)}
+body.theme-night .text-purple-600{color:#c77cff!important;text-shadow:0 0 10px rgba(199,124,255,.25)}
+body.theme-night .text-red-600,
+body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba(255,93,131,.25)}
+
+/* ---------- Responsive dashboard ---------- */
+@media(max-width:1100px){
+    #view-dashboard .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+    #view-dashboard .grid{grid-template-columns:1fr}
+    #view-dashboard .grid > div{min-height:122px!important}
+}
+</style>
+
 </head>
 <body class="flex flex-col h-screen overflow-hidden text-slate-800">
 
@@ -942,6 +1288,24 @@
         }
 
         initTheme();
+
+
+        // Keep dynamically rendered dashboard bars visually synchronized with theme.
+        function refreshDashboardVisuals() {
+            const bars = document.getElementById('dashboard-position-bars');
+            if (!bars) return;
+            bars.setAttribute('data-theme', document.body.classList.contains('theme-night') ? 'night' : 'day');
+        }
+
+        const dashboardVisualObserver = new MutationObserver(refreshDashboardVisuals);
+        const dashboardBars = document.getElementById('dashboard-position-bars');
+        if (dashboardBars) dashboardVisualObserver.observe(dashboardBars, {childList:true, subtree:true});
+
+        const originalSetThemeForVisuals = window.setTheme;
+        window.setTheme = function(theme) {
+            originalSetThemeForVisuals(theme);
+            requestAnimationFrame(refreshDashboardVisuals);
+        };
 
         let globalCandidates = [];
         let filteredScreeningList = [];
