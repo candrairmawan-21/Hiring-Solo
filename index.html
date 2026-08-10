@@ -969,8 +969,39 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
 }
 </style>
 
+
+<style id="audit-ui-overrides">
+.header-tools{position:relative;z-index:3;display:flex;align-items:center;gap:10px}
+.sync-indicator{
+    display:flex;align-items:center;gap:8px;font-size:11px;color:#d7e1ec;
+    background:rgba(255,255,255,.055);padding:6px 12px;border-radius:10px;
+    border:1px solid rgba(255,255,255,.10);white-space:nowrap;
+}
+.master-sheet-link{
+    display:flex;align-items:center;gap:8px;font-size:11px;color:#fff;
+    background:#16836c;padding:6px 12px;border-radius:10px;
+    border:1px solid rgba(22,131,108,.75);box-shadow:0 5px 14px rgba(22,131,108,.18);
+    transition:all .2s ease;cursor:pointer;white-space:nowrap;text-decoration:none;
+}
+.master-sheet-link:hover{background:#116b59;transform:translateY(-1px);box-shadow:0 8px 18px rgba(22,131,108,.24)}
+body.theme-day .sync-indicator{color:#66564e!important;background:rgba(247,238,229,.82)!important;border-color:#e4d2c3!important}
+body.theme-night .sync-indicator{color:#a8d0d8!important;background:rgba(6,20,31,.82)!important;border-color:rgba(39,231,255,.18)!important}
+body.theme-night .master-sheet-link{color:#00151c!important;background:#36ffc4!important;border-color:#36ffc4!important;box-shadow:0 0 16px rgba(54,255,196,.25),0 0 28px rgba(54,255,196,.10)!important}
+body.theme-night .master-sheet-link:hover{background:#72ffd6!important}
+#screening-filter-panel select{min-width:0}
+@media(max-width:1100px){
+  #screening-filter-panel > div:not(.queue-summary){flex:1 1 calc(33.333% - 16px)}
+}
+@media(max-width:760px){
+  #screening-filter-panel > div:not(.queue-summary){flex:1 1 calc(50% - 16px)}
+  .header-tools{gap:6px}
+  .sync-indicator span,.master-sheet-link span{display:none}
+  .sync-indicator,.master-sheet-link{width:34px;height:32px;padding:0;justify-content:center}
+}
+</style>
+
 </head>
-<body class="flex flex-col h-screen overflow-hidden text-slate-800">
+<body class="theme-day flex flex-col h-screen overflow-hidden text-slate-800">
 
     <!-- Top Navigation Bar (Clean & Modern) -->
     <header class="app-header text-white px-6 py-3.5 flex justify-between items-center z-20">
@@ -1007,10 +1038,23 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
                 <button id="theme-day" onclick="setTheme('day')" title="Day mode"><i class="fa-solid fa-sun"></i></button>
                 <button id="theme-night" onclick="setTheme('night')" title="Night mode"><i class="fa-solid fa-moon"></i></button>
             </div>
-            <div class="hidden md:flex items-center gap-2 text-xs text-slate-300 bg-slate-800/80 px-3.5 py-1.5 rounded-xl border border-slate-700/60 shadow-inner">
-            <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-            <span class="font-medium">LIVE • SHEET SYNC</span>
-        </div>
+            <div class="header-tools">
+                <div class="sync-indicator">
+                    <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                    <span class="font-medium">LIVE • SHEET SYNC</span>
+                </div>
+                <a
+                    href="https://docs.google.com/spreadsheets/d/1PMciImAHO4EF1IzGognIVCeYrP2lxAr_YIsnfvVI-Bc/edit?gid=1223093680#gid=1223093680"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="master-sheet-link"
+                    title="Buka Google Sheet Master"
+                    aria-label="Buka Google Sheet Master"
+                >
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span class="font-medium">Buka Master Sheet</span>
+                </a>
+            </div>
     </header>
 
     <!-- Main Content Area -->
@@ -1091,7 +1135,7 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
             </div>
             
             <!-- Slicer & Filter Panel -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end border border-slate-200/80">
+            <div id="screening-filter-panel" role="group" aria-label="Filter kandidat screening" class="bg-white p-5 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end border border-slate-200/80">
                 <div class="flex-1 min-w-[200px]">
                     <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Posisi</label>
                     <select id="filter-pos" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
@@ -1112,7 +1156,48 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
                         <option value="Sragen">Sragen</option>
                     </select>
                 </div>
-                <div class="text-xs font-semibold text-slate-600 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2">
+
+                <!-- Slicer Tambahan: Usia -->
+                <div class="flex-1 min-w-[160px]">
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Usia</label>
+                    <select id="filter-age" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                        <option value="all">Semua Usia</option>
+                        <option value="18-20">18–20 Tahun</option>
+                        <option value="21-25">21–25 Tahun</option>
+                        <option value="26-30">26–30 Tahun</option>
+                        <option value="31+">31 Tahun ke atas</option>
+                    </select>
+                </div>
+
+                <!-- Slicer Tambahan: Gender -->
+                <div class="flex-1 min-w-[160px]">
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Gender</label>
+                    <select id="filter-gender" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                        <option value="all">Semua Gender</option>
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                    </select>
+                </div>
+
+                <!-- Slicer Tambahan: Pendidikan -->
+                <div class="flex-1 min-w-[160px]">
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Pendidikan</label>
+                    <select id="filter-edu" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                        <option value="all">Semua Pend. Terakhir</option>
+                        <option value="SMA/SMK">SMA/SMK</option>
+                        <option value="D3/S1">D3/S1</option>
+                    </select>
+                </div>
+
+                <!-- Slicer Tambahan: Progress -->
+                <div class="flex-1 min-w-[180px]">
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Progress</label>
+                    <select id="filter-progress" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                        <option value="all">Semua Progress</option>
+                    </select>
+                </div>
+
+                <div class="queue-summary text-xs font-semibold text-slate-600 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2">
                     <i class="fa-solid fa-filter text-[#b85c43]"></i> Antrean Saring: <span id="queue-count" class="font-bold text-[#b85c43] text-sm">0</span> kandidat
                 </div>
             </div>
@@ -1309,6 +1394,7 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
 
         let globalCandidates = [];
         let filteredScreeningList = [];
+        let currentScreeningIndex = 0;
 
         // Sistem Toast Global
         function showToast(message, type = 'success') {
@@ -1352,29 +1438,126 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
             }
 
             // Inisialisasi tampilan per tab
-            if (tab === 'dashboard') renderDashboardMetrics(globalCandidates);
+            if (tab === 'dashboard' && typeof renderDashboardMetrics === 'function') renderDashboardMetrics(globalCandidates);
             if (tab === 'screening') initScreeningQueue();
-            if (tab === 'pipeline') renderKanbanBoard(globalCandidates);
-            if (tab === 'database') renderDatabaseTable(globalCandidates);
+            if (tab === 'pipeline' && typeof renderKanbanBoard === 'function') renderKanbanBoard(globalCandidates);
+            if (tab === 'database' && typeof renderDatabaseTable === 'function') renderDatabaseTable(globalCandidates);
         }
 
-        // Inisialisasi Slicer & Antrean Screening
+        // ============================================================
+        // SCREENING FILTER ENGINE
+        // ============================================================
+        function getCandidateField(candidate, keys) {
+            for (const key of keys) {
+                const value = candidate?.[key];
+                if (value !== undefined && value !== null && String(value).trim() !== '') return value;
+            }
+            return '';
+        }
+
+        function normalizeText(value) {
+            return String(value ?? '').trim().toLowerCase();
+        }
+
+        function normalizeGender(value) {
+            const v = normalizeText(value);
+            if (['laki-laki','laki laki','laki','male','pria'].includes(v)) return 'Laki-laki';
+            if (['perempuan','female','wanita'].includes(v)) return 'Perempuan';
+            return String(value ?? '').trim();
+        }
+
+        function normalizeEducation(value) {
+            const v = normalizeText(value);
+            if (['sma','smk','sma/smk','sma - smk','sma / smk'].includes(v)) return 'SMA/SMK';
+            if (['d3','d4','s1','d3/s1','d3 / s1','d4/s1'].includes(v)) return 'D3/S1';
+            return String(value ?? '').trim();
+        }
+
+        function parseCandidateAge(candidate) {
+            const raw = getCandidateField(candidate, ['age','usia','umur','Age','Usia','Umur']);
+            const n = Number(String(raw).replace(',', '.').replace(/[^0-9.]/g, ''));
+            return Number.isFinite(n) ? n : null;
+        }
+
+        function ageMatches(age, selectedRange) {
+            if (selectedRange === 'all') return true;
+            if (age === null) return false;
+            if (selectedRange === '18-20') return age >= 18 && age <= 20;
+            if (selectedRange === '21-25') return age >= 21 && age <= 25;
+            if (selectedRange === '26-30') return age >= 26 && age <= 30;
+            if (selectedRange === '31+') return age >= 31;
+            return true;
+        }
+
+        function getCandidateProgress(candidate) {
+            return String(getCandidateField(candidate, [
+                'progress','Progress','PROGRESS','stage','Stage',
+                'status','Status','STATUS'
+            ])).trim();
+        }
+
+        function syncProgressSlicerOptions() {
+            const select = document.getElementById('filter-progress');
+            if (!select) return;
+
+            const currentValue = select.value || 'all';
+            const values = [...new Set(
+                (Array.isArray(globalCandidates) ? globalCandidates : [])
+                    .map(getCandidateProgress)
+                    .filter(Boolean)
+            )].sort((a,b) => a.localeCompare(b, 'id'));
+
+            select.innerHTML = '<option value="all">Semua Progress</option>';
+            values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+            select.value = values.includes(currentValue) ? currentValue : 'all';
+        }
+
         function initScreeningQueue() {
-            const posFilter = document.getElementById('filter-pos').value;
-            const cityFilter = document.getElementById('filter-city').value;
+            const posFilter = document.getElementById('filter-pos')?.value || 'all';
+            const cityFilter = document.getElementById('filter-city')?.value || 'all';
+            const ageFilter = document.getElementById('filter-age')?.value || 'all';
+            const genderFilter = document.getElementById('filter-gender')?.value || 'all';
+            const eduFilter = document.getElementById('filter-edu')?.value || 'all';
+            const progressFilter = document.getElementById('filter-progress')?.value || 'all';
             const loadingEl = document.getElementById('screening-loading');
 
             if (loadingEl) loadingEl.style.display = 'flex';
 
-            filteredScreeningList = globalCandidates.filter(c => {
-                if (c.status !== 'RAW') return false;
-                if (posFilter !== 'all' && c.position !== posFilter) return false;
-                if (cityFilter !== 'all' && c.city !== cityFilter) return false;
+            filteredScreeningList = (Array.isArray(globalCandidates) ? globalCandidates : []).filter(candidate => {
+                // Screening tetap hanya mengambil kandidat RAW.
+                if (normalizeText(candidate?.status) !== 'raw') return false;
+
+                if (posFilter !== 'all' && normalizeText(candidate?.position) !== normalizeText(posFilter)) return false;
+                if (cityFilter !== 'all' && normalizeText(candidate?.city) !== normalizeText(cityFilter)) return false;
+
+                const gender = normalizeGender(getCandidateField(candidate, ['gender','Gender','GENDER','jenisKelamin','Jenis Kelamin']));
+                if (genderFilter !== 'all' && normalizeText(gender) !== normalizeText(genderFilter)) return false;
+
+                const education = normalizeEducation(getCandidateField(candidate, ['lastEducation','education','Education','pendidikan','Pendidikan','pendidikanTerakhir','Pendidikan Terakhir']));
+                if (eduFilter !== 'all' && normalizeText(education) !== normalizeText(eduFilter)) return false;
+
+                if (!ageMatches(parseCandidateAge(candidate), ageFilter)) return false;
+
+                if (progressFilter !== 'all' && normalizeText(getCandidateProgress(candidate)) !== normalizeText(progressFilter)) return false;
+
                 return true;
             });
 
+            const queueCount = document.getElementById('queue-count');
+            if (queueCount) queueCount.innerText = filteredScreeningList.length;
+
             currentScreeningIndex = 0;
-            renderScreeningCard(filteredScreeningList);
+
+            if (typeof renderScreeningCard === 'function') {
+                renderScreeningCard(filteredScreeningList);
+            } else {
+                console.warn('renderScreeningCard() belum tersedia dari screening.js');
+            }
 
             if (loadingEl) loadingEl.style.display = 'none';
         }
@@ -1384,7 +1567,7 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
         }
 
         function refreshScreeningQueue() {
-            renderScreeningCard(filteredScreeningList);
+            initScreeningQueue();
         }
 
         function refreshPipelineView() {
@@ -1404,15 +1587,33 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
 
         // Fungsi Load Data Utama dari Google Sheet via API
         async function loadAllData() {
-            globalCandidates = await fetchCandidatesFromSheet();
-            
-            // Refresh view yang sedang aktif
-            const activeTab = document.querySelector('main > section:not(.hidden)');
-            if (activeTab) {
-                if (activeTab.id === 'view-dashboard') renderDashboardMetrics(globalCandidates);
-                if (activeTab.id === 'view-screening') initScreeningQueue();
-                if (activeTab.id === 'view-pipeline') renderKanbanBoard(globalCandidates);
-                if (activeTab.id === 'view-database') refreshDatabaseView();
+            try {
+                const data = await fetchCandidatesFromSheet();
+                globalCandidates = Array.isArray(data) ? data : [];
+
+                syncProgressSlicerOptions();
+
+                const activeTab = document.querySelector('main > section:not(.hidden)');
+                if (activeTab) {
+                    if (activeTab.id === 'view-dashboard' && typeof renderDashboardMetrics === 'function') {
+                        renderDashboardMetrics(globalCandidates);
+                    }
+                    if (activeTab.id === 'view-screening') {
+                        initScreeningQueue();
+                    }
+                    if (activeTab.id === 'view-pipeline' && typeof renderKanbanBoard === 'function') {
+                        renderKanbanBoard(globalCandidates);
+                    }
+                    if (activeTab.id === 'view-database' && typeof refreshDatabaseView === 'function') {
+                        refreshDatabaseView();
+                    }
+                }
+            } catch (error) {
+                console.error('Gagal memuat data kandidat:', error);
+                globalCandidates = [];
+                syncProgressSlicerOptions();
+                initScreeningQueue();
+                showToast('Gagal memuat data dari Google Sheet.', 'error');
             }
         }
 
@@ -1420,6 +1621,9 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
         document.addEventListener('keydown', (e) => {
             const screeningView = document.getElementById('view-screening');
             if (!screeningView || screeningView.classList.contains('hidden')) return;
+
+            const tag = (e.target?.tagName || '').toLowerCase();
+            if (['input','select','textarea','button'].includes(tag)) return;
 
             const rawList = filteredScreeningList.filter(c => c.status === 'RAW');
             if (currentScreeningIndex >= rawList.length) return;
