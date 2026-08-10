@@ -1,6 +1,6 @@
 // ==========================================
-// FILE: js/pipeline.js
-// KETERANGAN: Mengatur Kanban Board, Pembuatan Link WhatsApp API otomatis (Alur #5), & Jadwal Interview.
+// FILE: js/pipeline.js (Optimized Performance)
+// KETERANGAN: Mengatur Kanban Board dengan optimasi DOM (mencegah lag), Optimistic UI, & WhatsApp API.
 // ==========================================
 
 // 1. FUNGSI: Membuat Link WhatsApp API dengan format pesan yang ditentukan
@@ -15,7 +15,7 @@ function generateWhatsAppLink(candidatePhone) {
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }
 
-// 2. FUNGSI: Render Kanban Board Berdasarkan Status Kandidat
+// 2. FUNGSI: Render Kanban Board dengan Optimasi Performa Tinggi (Tanpa innerHTML += dalam loop)
 function renderKanbanBoard(candidatesArray) {
     const cols = {
         shortlist: document.getElementById('kanban-shortlist'),
@@ -25,11 +25,16 @@ function renderKanbanBoard(candidatesArray) {
         hired: document.getElementById('kanban-hired')
     };
 
-    Object.values(cols).forEach(col => {
-        if (col) col.innerHTML = '';
-    });
-
     let counts = { shortlist: 0, waiting: 0, review: 0, interview: 0, hired: 0 };
+    
+    // Objek penampung string HTML per kolom (Mencegah reflow DOM berulang-ulang)
+    let colHTML = {
+        shortlist: '',
+        waiting: '',
+        review: '',
+        interview: '',
+        hired: ''
+    };
 
     candidatesArray.forEach(c => {
         if (c.status === 'RAW' || c.status === 'REJECTED') return;
@@ -41,21 +46,24 @@ function renderKanbanBoard(candidatesArray) {
         else if (c.status === 'INTERVIEW') targetColKey = 'interview';
         else if (c.status === 'HIRED') targetColKey = 'hired';
 
+        // Batasi tampilan maksimal 50 kartu terbaru per kolom untuk menjaga performa web tetap ringan
+        if (counts[targetColKey] >= 50) return;
+
         counts[targetColKey]++;
 
         let cardHTML = `
             <div class="bg-white p-4 rounded-2xl shadow-xs border border-slate-200 mb-3 hover:border-blue-300 transition">
                 <div class="flex justify-between items-start mb-2">
-                    <h4 class="font-bold text-sm text-slate-800">${c.name}</h4>
-                    <span class="text-[11px] bg-slate-100 px-2.5 py-0.5 rounded font-semibold text-slate-600">${c.position}</span>
+                    <h4 class="font-bold text-sm text-slate-800">${c.name || 'Tanpa Nama'}</h4>
+                    <span class="text-[11px] bg-slate-100 px-2.5 py-0.5 rounded font-semibold text-slate-600">${c.position || '-'}</span>
                 </div>
-                <p class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-phone mr-1"></i> ${c.phone}</p>
+                <p class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-phone mr-1"></i> ${c.phone || '-'}</p>
         `;
 
         if (c.status === 'SHORTLIST') {
             const waLink = generateWhatsAppLink(c.phone);
             cardHTML += `
-                <a href="${waLink}" target="_blank" onclick="updateStatusToWaiting('${c.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
+                <a href="${waLink}" target="_blank" onclick="updateStatusToWaiting('${c.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
                     <i class="fa-brands fa-whatsapp text-sm"></i> Chat WA & Kirim Form
                 </a>
             `;
@@ -78,7 +86,6 @@ function renderKanbanBoard(candidatesArray) {
                 </div>
             `;
         } else if (c.status === 'INTERVIEW') {
-            // Memastikan data tanggal interview yang tersimpan dari backend ditampilkan di card
             cardHTML += `
                 <div class="space-y-2">
                     <p class="text-[11px] text-purple-700 bg-purple-50 p-2.5 rounded-xl font-medium text-center border border-purple-100">
@@ -100,11 +107,19 @@ function renderKanbanBoard(candidatesArray) {
 
         cardHTML += `</div>`;
         
-        if (cols[targetColKey]) {
-            cols[targetColKey].innerHTML += cardHTML;
+        if (colHTML[targetColKey] !== undefined) {
+            colHTML[targetColKey] += cardHTML;
         }
     });
 
+    // Masukkan string HTML ke DOM HANYA SEKALI setelah perulangan selesai (Sangat Cepat & Responsif)
+    Object.keys(cols).forEach(key => {
+        if (cols[key]) {
+            cols[key].innerHTML = colHTML[key] || `<div class="text-center py-8 text-slate-400 text-xs italic">Belum ada kandidat</div>`;
+        }
+    });
+
+    // Update Counter Badge di Header Kolom
     if (document.getElementById('count-shortlist')) document.getElementById('count-shortlist').innerText = counts.shortlist;
     if (document.getElementById('count-waiting')) document.getElementById('count-waiting').innerText = counts.waiting;
     if (document.getElementById('count-review')) document.getElementById('count-review').innerText = counts.review;
@@ -112,13 +127,20 @@ function renderKanbanBoard(candidatesArray) {
     if (document.getElementById('count-hired')) document.getElementById('count-hired').innerText = counts.hired;
 }
 
-// 3. FUNGSI AKSI: Ubah status ke WAITING_CV setelah tombol WA diklik
+// 3. FUNGSI AKSI DENGAN OPTIMISTIC UI: Update status secara instan tanpa menunggu fetch jaringan penuh
 async function updateStatusToWaiting(candidateId) {
+    // Update lokal terlebih dahulu agar UI merespons seketika
+    const targetCandidate = globalCandidates.find(c => c.id === candidateId);
+    if (targetCandidate) targetCandidate.status = 'WAITING_CV';
+    renderKanbanBoard(globalCandidates);
+
+    showToast("Status diperbarui: Menunggu G-Form.", "info");
+
+    // Kirim ke backend di latar belakang
     await updateCandidateDataInSheet(candidateId, { status: 'WAITING_CV' });
-    showToast("Status diperbarui: Menunggu Form G-Form.", "info");
 }
 
-// 4. FUNGSI AKSI: Penjadwalan Interview (Alur #8)
+// 4. FUNGSI AKSI: Penjadwalan Interview (Alur #8 dengan Optimistic UI)
 async function scheduleInterviewAction(candidateId) {
     const dateInput = document.getElementById(`date-${candidateId}`);
     if (!dateInput || !dateInput.value) {
@@ -127,26 +149,38 @@ async function scheduleInterviewAction(candidateId) {
     }
 
     const interviewDate = dateInput.value;
-    const success = await updateCandidateDataInSheet(candidateId, { 
+
+    // Update lokal instan
+    const targetCandidate = globalCandidates.find(c => c.id === candidateId);
+    if (targetCandidate) {
+        targetCandidate.status = 'INTERVIEW';
+        targetCandidate.interviewDate = interviewDate;
+    }
+    renderKanbanBoard(globalCandidates);
+    showToast("Jadwal interview berhasil disimpan!", "success");
+
+    // Kirim ke backend
+    await updateCandidateDataInSheet(candidateId, { 
         status: 'INTERVIEW', 
         interviewDate: interviewDate 
     });
-
-    if (success) {
-        showToast("Jadwal interview berhasil disimpan!", "success");
-        if (typeof refreshPipelineView === 'function') refreshPipelineView();
-    }
 }
 
-// 5. FUNGSI AKSI: Hasil Interview (Alur #9 & #10)
+// 5. FUNGSI AKSI: Hasil Interview (Alur #9 & #10 dengan Optimistic UI)
 async function processInterviewResult(candidateId, resultStatus) {
-    const success = await updateCandidateDataInSheet(candidateId, { status: resultStatus });
-    if (success) {
-        if (resultStatus === 'HIRED') {
-            showToast("Kandidat resmi diterima (HIRED)!", "success");
-        } else {
-            showToast("Kandidat ditolak (REJECTED).", "error");
-        }
-        if (typeof refreshPipelineView === 'function') refreshPipelineView();
+    // Update lokal instan
+    const targetCandidate = globalCandidates.find(c => c.id === candidateId);
+    if (targetCandidate) {
+        targetCandidate.status = resultStatus;
     }
+    renderKanbanBoard(globalCandidates);
+
+    if (resultStatus === 'HIRED') {
+        showToast("Kandidat resmi diterima (HIRED)!", "success");
+    } else {
+        showToast("Kandidat ditolak (REJECTED).", "error");
+    }
+
+    // Kirim ke backend
+    await updateCandidateDataInSheet(candidateId, { status: resultStatus });
 }
