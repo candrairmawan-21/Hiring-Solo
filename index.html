@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Rekrutmen Solo Raya - MR DIY</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .card-swipe-left { animation: swipeLeft 0.35s forwards ease-in-out; }
+        .card-swipe-right { animation: swipeRight 0.35s forwards ease-in-out; }
+        @keyframes swipeLeft { to { transform: translateX(-160%) rotate(-12deg); opacity: 0; } }
+        @keyframes swipeRight { to { transform: translateX(160%) rotate(12deg); opacity: 0; } }
+        .kanban-col::-webkit-scrollbar { width: 6px; height: 6px; }
+        .kanban-col::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 8px; }
+        .kanban-col::-webkit-scrollbar-track { background-color: #f1f5f9; border-radius: 8px; }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-slate-800">
+
+    <!-- Top Navigation Bar (Clean & Modern) -->
+    <header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-base shadow-lg shadow-blue-600/30">
+                <i class="fa-solid fa-users-gear"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-sm tracking-wide">HR Solo Raya</h1>
+                <p class="text-[11px] text-slate-400">Portal Rekrutmen Terpadu</p>
+            </div>
+        </div>
+        
+        <nav class="flex items-center gap-1.5 sm:gap-2">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all text-slate-300 hover:bg-slate-800 hover:text-white font-medium text-xs sm:text-sm cursor-pointer">
+                <i class="fa-solid fa-chart-pie text-blue-400"></i> Dashboard
+            </button>
+            <button onclick="switchTab('screening')" id="nav-screening" class="flex items-center gap-2 px-3.5 py-2 bg-blue-600 text-white rounded-xl transition-all font-medium text-xs sm:text-sm shadow-md shadow-blue-600/30 cursor-pointer">
+                <i class="fa-solid fa-layer-group"></i> Screening Card
+            </button>
+            <button onclick="switchTab('pipeline')" id="nav-pipeline" class="flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all text-slate-300 hover:bg-slate-800 hover:text-white font-medium text-xs sm:text-sm cursor-pointer">
+                <i class="fa-solid fa-kanban text-emerald-400"></i> Pipeline & WA
+            </button>
+            <button onclick="switchTab('database')" id="nav-database" class="flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all text-slate-300 hover:bg-slate-800 hover:text-white font-medium text-xs sm:text-sm cursor-pointer">
+                <i class="fa-solid fa-database text-amber-400"></i> Database & Arsip
+            </button>
+        </nav>
+        
+        <div class="hidden md:flex items-center gap-2 text-xs text-slate-300 bg-slate-800/80 px-3.5 py-1.5 rounded-xl border border-slate-700/60 shadow-inner">
+            <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            <span class="font-medium">Live Sheet Sync</span>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-[calc(100vh-73px)] relative overflow-hidden bg-slate-100/70">
+        
+        <!-- 1. DASHBOARD VIEW -->
+        <section id="view-dashboard" class="hidden flex-1 flex flex-col p-6 md:p-8 overflow-y-auto">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">Dashboard & Ringkasan Metrik</h2>
+                <p class="text-slate-500 text-sm">Analisis performa rekrutmen secara real-time dari database.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md transition-shadow">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Pelamar</p>
+                        <h3 id="metric-total" class="text-3xl font-extrabold text-slate-800 mt-1">0</h3>
+                        <span class="text-xs text-slate-500 font-semibold mt-1 inline-block">Seluruh histori database</span>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-inner">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md transition-shadow">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Shortlisted</p>
+                        <h3 id="metric-shortlist" class="text-3xl font-extrabold text-slate-800 mt-1">0</h3>
+                        <span class="text-xs text-blue-600 font-semibold mt-1 inline-block">Lolos tahap awal</span>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shadow-inner">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md transition-shadow">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Dalam Proses</p>
+                        <h3 id="metric-process" class="text-3xl font-extrabold text-slate-800 mt-1">0</h3>
+                        <span class="text-xs text-purple-600 font-semibold mt-1 inline-block">Menunggu Form / Interview</span>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shadow-inner">
+                        <i class="fa-solid fa-comments"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between hover:shadow-md transition-shadow">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Hired (Diterima)</p>
+                        <h3 id="metric-hired" class="text-3xl font-extrabold text-emerald-600 mt-1">0</h3>
+                        <span class="text-xs text-slate-500 font-semibold mt-1 inline-block">Berhasil bergabung</span>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-inner">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+                <h3 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-bar text-blue-600"></i> Distribusi Peminat Posisi
+                </h3>
+                <div id="dashboard-position-bars" class="space-y-4">
+                    <!-- Dinamis via dashboard.js -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. SCREENING CARD VIEW (DENGAN SLICER) -->
+        <section id="view-screening" class="flex-1 flex flex-col p-6 md:p-8 overflow-y-auto">
+            
+            <!-- Slicer & Filter Panel -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end border border-slate-200/80">
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Posisi</label>
+                    <select id="filter-pos" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 font-medium cursor-pointer">
+                        <option value="all">Semua Posisi</option>
+                        <option value="Kasir">Kasir</option>
+                        <option value="Pramuniaga">Pramuniaga</option>
+                        <option value="Store Boy">Store Boy</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Domisili</label>
+                    <select id="filter-city" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 font-medium cursor-pointer">
+                        <option value="all">Semua Domisili (Solo Raya)</option>
+                        <option value="Surakarta">Surakarta</option>
+                        <option value="Boyolali">Boyolali</option>
+                        <option value="Sukoharjo">Sukoharjo</option>
+                        <option value="Karanganyar">Karanganyar</option>
+                        <option value="Sragen">Sragen</option>
+                    </select>
+                </div>
+                <div class="text-xs font-semibold text-slate-600 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-filter text-blue-600"></i> Antrean Saring: <span id="queue-count" class="font-bold text-blue-600 text-sm">0</span> kandidat
+                </div>
+            </div>
+
+            <!-- Card Container Area -->
+            <div class="flex-1 flex justify-center items-center relative min-h-[420px]">
+                <!-- Loading State Indikator -->
+                <div id="screening-loading" class="absolute flex flex-col items-center justify-center text-slate-400 bg-white/80 backdrop-blur-xs p-8 rounded-2xl border border-slate-200 shadow-sm w-full max-w-md text-center z-0">
+                    <div class="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin mb-3"></div>
+                    <p class="text-sm font-bold text-slate-700">Memuat Antrean Kandidat...</p>
+                </div>
+
+                <div id="no-more-cards" class="absolute hidden flex-col items-center justify-center text-slate-400 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm w-full max-w-md text-center z-20">
+                    <div class="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl mb-3 shadow-inner">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <p class="text-lg font-bold text-slate-800">Antrean Saring Kosong!</p>
+                    <p class="text-sm text-slate-500 mt-1">Semua kandidat pada filter ini telah diproses atau dipindahkan ke Pipeline.</p>
+                </div>
+                
+                <!-- Active Card -->
+                <div id="card-container" class="w-full max-w-md relative z-10 transition-transform duration-300">
+                    <!-- Dirender via screening.js -->
+                </div>
+            </div>
+            
+            <div class="text-center text-slate-400 text-xs mt-4 flex items-center justify-center gap-4 bg-white/60 py-2.5 px-4 rounded-xl border border-slate-200/60 w-fit mx-auto shadow-xs">
+                <span><kbd class="px-2 py-1 bg-white border border-slate-300 rounded shadow-xs text-xs font-semibold text-slate-600">←</kbd> Reject</span>
+                <span class="text-slate-300">|</span>
+                <span><kbd class="px-2 py-1 bg-white border border-slate-300 rounded shadow-xs text-xs font-semibold text-slate-600">↻</kbd> Skip (Pindah Belakang)</span>
+                <span class="text-slate-300">|</span>
+                <span><kbd class="px-2 py-1 bg-white border border-slate-300 rounded shadow-xs text-xs font-semibold text-slate-600">→</kbd> Shortlist</span>
+            </div>
+        </section>
+
+        <!-- 3. PIPELINE KANBAN VIEW -->
+        <section id="view-pipeline" class="hidden flex-1 flex flex-col p-6 md:p-8 overflow-hidden h-full">
+            <div class="mb-4 flex justify-between items-center flex-shrink-0">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Pipeline & Otomatisasi WhatsApp</h2>
+                    <p class="text-slate-500 text-sm">Kelola tahapan seleksi dari Shortlist, Kirim Form, Review CV, hingga Interview & Hired.</p>
+                </div>
+            </div>
+
+            <!-- Kanban Board Grid -->
+            <div class="flex-1 flex gap-5 overflow-x-auto pb-4 items-start h-full">
+                
+                <!-- Col 1: Shortlisted -->
+                <div class="bg-white/90 rounded-2xl w-80 flex-shrink-0 flex flex-col max-h-full border border-slate-200 shadow-sm">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                        <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block shadow-xs"></span>Shortlist (Belum WA)</h3>
+                        <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold" id="count-shortlist">0</span>
+                    </div>
+                    <div id="kanban-shortlist" class="p-3 flex-1 overflow-y-auto space-y-3 kanban-col"></div>
+                </div>
+
+                <!-- Col 2: Waiting Form / CV -->
+                <div class="bg-white/90 rounded-2xl w-80 flex-shrink-0 flex flex-col max-h-full border border-slate-200 shadow-sm">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                        <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-400 inline-block shadow-xs"></span>Menunggu Form/CV</h3>
+                        <span class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-bold" id="count-waiting">0</span>
+                    </div>
+                    <div id="kanban-waiting" class="p-3 flex-1 overflow-y-auto space-y-3 kanban-col"></div>
+                </div>
+
+                <!-- Col 3: Review CV -->
+                <div class="bg-white/90 rounded-2xl w-80 flex-shrink-0 flex flex-col max-h-full border border-slate-200 shadow-sm">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                        <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-purple-500 inline-block shadow-xs"></span>Review CV & Jadwal</h3>
+                        <span class="bg-purple-100 text-purple-800 text-xs px-2.5 py-0.5 rounded-full font-bold" id="count-review">0</span>
+                    </div>
+                    <div id="kanban-review" class="p-3 flex-1 overflow-y-auto space-y-3 kanban-col"></div>
+                </div>
+
+                <!-- Col 4: Interview -->
+                <div class="bg-white/90 rounded-2xl w-80 flex-shrink-0 flex flex-col max-h-full border border-slate-200 shadow-sm">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                        <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-indigo-500 inline-block shadow-xs"></span>Tahap Interview</h3>
+                        <span class="bg-indigo-100 text-indigo-800 text-xs px-2.5 py-0.5 rounded-full font-bold" id="count-interview">0</span>
+                    </div>
+                    <div id="kanban-interview" class="p-3 flex-1 overflow-y-auto space-y-3 kanban-col"></div>
+                </div>
+
+                <!-- Col 5: Hired -->
+                <div class="bg-white/90 rounded-2xl w-80 flex-shrink-0 flex flex-col max-h-full border border-slate-200 shadow-sm">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                        <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-xs"></span>Hired (Diterima)</h3>
+                        <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-bold" id="count-hired">0</span>
+                    </div>
+                    <div id="kanban-hired" class="p-3 flex-1 overflow-y-auto space-y-3 kanban-col"></div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 4. DATABASE & ARSIP VIEW -->
+        <section id="view-database" class="hidden flex-1 flex flex-col p-6 md:p-8 overflow-y-auto">
+            <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Database & Arsip Sentral</h2>
+                    <p class="text-slate-500 text-sm">Pusat data pelamar untuk mencegah kandidat ganda dan melacak riwayat seleksi.</p>
+                </div>
+                <div class="w-full sm:w-72">
+                    <div class="relative">
+                        <i class="fa-solid fa-search absolute left-3.5 top-3 text-slate-400"></i>
+                        <input type="text" id="db-search-input" oninput="handleDatabaseSearch(this.value)" placeholder="Cari nama, No WA, posisi..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-xs" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col flex-1">
+                <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                    <span class="text-sm font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-table text-slate-500"></i> Tabel Master Pelamar</span>
+                    <span class="text-xs bg-slate-200/80 text-slate-700 px-3 py-1 rounded-full font-semibold" id="db-total-count">0 Data</span>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-100/70 text-slate-600 uppercase text-[11px] font-bold tracking-wider">
+                                <th class="p-4">Nama Kandidat</th>
+                                <th class="p-4">Posisi</th>
+                                <th class="p-4">No WhatsApp</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4">Histori / Duplikat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="database-table-body" class="divide-y divide-slate-100">
+                            <!-- Dirender via database.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Toast Notification Bar -->
+        <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl transform transition-transform duration-300 translate-y-24 opacity-0 z-50 flex items-center gap-3 border border-slate-800">
+            <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+            <span id="toast-msg" class="text-sm font-medium">Notifikasi Sistem</span>
+        </div>
+
+    </main>
+
+    <!-- Pemuatan Modul JavaScript Terpisah (Urutan Wajib: Config -> API -> Fitur Lainnya) -->
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/screening.js"></script>
+    <script src="js/pipeline.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/database.js"></script>
+
+    <script>
+        let globalCandidates = [];
+        let filteredScreeningList = [];
+
+        // Sistem Toast Global
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+            
+            if(!toast) return;
+            toastMsg.innerText = message;
+            
+            if(type === 'success') {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            } else if (type === 'error') {
+                toastIcon.className = "fa-solid fa-circle-xmark text-rose-400 text-lg";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-info text-blue-400 text-lg";
+            }
+
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3200);
+        }
+
+        // Navigasi Tab Utama
+        function switchTab(tab) {
+            ['dashboard', 'screening', 'pipeline', 'database'].forEach(t => {
+                const viewEl = document.getElementById(`view-${t}`);
+                const navEl = document.getElementById(`nav-${t}`);
+                if(viewEl) viewEl.classList.add('hidden');
+                if(navEl) {
+                    navEl.className = "flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all text-slate-300 hover:bg-slate-800 hover:text-white font-medium text-xs sm:text-sm cursor-pointer";
+                }
+            });
+
+            const activeView = document.getElementById(`view-${tab}`);
+            const activeNav = document.getElementById(`nav-${tab}`);
+            if(activeView) activeView.classList.remove('hidden');
+            if(activeNav) {
+                activeNav.className = "flex items-center gap-2 px-3.5 py-2 bg-blue-600 text-white rounded-xl transition-all font-medium text-xs sm:text-sm shadow-md shadow-blue-600/30 cursor-pointer";
+            }
+
+            // Inisialisasi tampilan per tab
+            if (tab === 'dashboard') renderDashboardMetrics(globalCandidates);
+            if (tab === 'screening') initScreeningQueue();
+            if (tab === 'pipeline') renderKanbanBoard(globalCandidates);
+            if (tab === 'database') renderDatabaseTable(globalCandidates);
+        }
+
+        // Inisialisasi Slicer & Antrean Screening
+        function initScreeningQueue() {
+            const posFilter = document.getElementById('filter-pos').value;
+            const cityFilter = document.getElementById('filter-city').value;
+            const loadingEl = document.getElementById('screening-loading');
+
+            if (loadingEl) loadingEl.style.display = 'flex';
+
+            filteredScreeningList = globalCandidates.filter(c => {
+                if (c.status !== 'RAW') return false;
+                if (posFilter !== 'all' && c.position !== posFilter) return false;
+                if (cityFilter !== 'all' && c.city !== cityFilter) return false;
+                return true;
+            });
+
+            currentScreeningIndex = 0;
+            renderScreeningCard(filteredScreeningList);
+
+            if (loadingEl) loadingEl.style.display = 'none';
+        }
+
+        function triggerScreeningFilter() {
+            initScreeningQueue();
+        }
+
+        function refreshScreeningQueue() {
+            renderScreeningCard(filteredScreeningList);
+        }
+
+        function refreshPipelineView() {
+            loadAllData();
+        }
+
+        function refreshDatabaseView() {
+            const searchInput = document.getElementById('db-search-input');
+            const query = searchInput ? searchInput.value : '';
+            renderDatabaseTable(globalCandidates, query);
+        }
+
+        function handleDatabaseSearch(query) {
+            currentDatabasePage = 1;
+            renderDatabaseTable(globalCandidates, query);
+        }
+
+        // Fungsi Load Data Utama dari Google Sheet via API
+        async function loadAllData() {
+            globalCandidates = await fetchCandidatesFromSheet();
+            
+            // Refresh view yang sedang aktif
+            const activeTab = document.querySelector('main > section:not(.hidden)');
+            if (activeTab) {
+                if (activeTab.id === 'view-dashboard') renderDashboardMetrics(globalCandidates);
+                if (activeTab.id === 'view-screening') initScreeningQueue();
+                if (activeTab.id === 'view-pipeline') renderKanbanBoard(globalCandidates);
+                if (activeTab.id === 'view-database') refreshDatabaseView();
+            }
+        }
+
+        // Global Keyboard Shortcuts untuk Screening (← Reject, → Shortlist, Space/R Skip)
+        document.addEventListener('keydown', (e) => {
+            const screeningView = document.getElementById('view-screening');
+            if (!screeningView || screeningView.classList.contains('hidden')) return;
+
+            const rawList = filteredScreeningList.filter(c => c.status === 'RAW');
+            if (currentScreeningIndex >= rawList.length) return;
+            const currentCandidate = rawList[currentScreeningIndex];
+            if (!currentCandidate) return;
+
+            if (e.key === 'ArrowLeft') {
+                handleScreeningAction(currentCandidate.id, 'REJECTED', filteredScreeningList);
+            } else if (e.key === 'ArrowRight') {
+                handleScreeningAction(currentCandidate.id, 'SHORTLIST', filteredScreeningList);
+            } else if (e.key === ' ' || e.key === 'r' || e.key === 'R') {
+                e.preventDefault();
+                handleScreeningAction(currentCandidate.id, 'SKIP', filteredScreeningList);
+            }
+        });
+
+        // Saat halaman pertama kali dimuat
+        window.onload = async () => {
+            await loadAllData();
+            // Default buka tab screening
+            switchTab('screening');
+        };
+    </script>
+</body>
+</html>
