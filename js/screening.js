@@ -1,30 +1,31 @@
 // ============================================================================
 // FILE: js/screening.js
-// DESKRIPSI: Menangani logika rendering UI kartu kandidat dan aksi screening
+// DESKRIPSI: Menangani logika rendering UI kartu kandidat dan aksi screening (Revisi Audit Internal)
 // ============================================================================
 
 /**
- * Fungsi untuk merender kartu screening berdasarkan list kandidat
+ * Fungsi untuk merender kartu screening berdasarkan list kandidat dengan penanganan fallback dan error handling yang aman.
  * @param {Array} list - Array objek kandidat yang sudah melalui proses filter
  */
 function renderScreeningCard(list) {
-    const container = document.getElementById('screening-container');
+    // Penyelarasan ID DOM: Menggunakan 'card-container' sesuai dengan elemen pembungkus di index.html
+    const container = document.getElementById('card-container');
     
     if (!container) {
-        console.error("Elemen #screening-container tidak ditemukan.");
+        console.error("Elemen penampung DOM (#card-container) tidak ditemukan.");
         return;
     }
 
-    // Pengecekan: Jika antrean kosong atau index sudah melewati batas akhir
-    if (!list || list.length === 0 || currentScreeningIndex >= list.length) {
+    // Penanganan Kesalahan & Fallback: Validasi jika list kosong atau tidak valid
+    if (!Array.isArray(list) || list.length === 0 || typeof currentScreeningIndex === 'undefined' || currentScreeningIndex >= list.length) {
         container.innerHTML = `
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-10 text-center transform transition-all duration-300 scale-100 opacity-100">
                 <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
                     <i class="fa-solid fa-check-double"></i>
                 </div>
                 <h3 class="text-xl font-bold text-slate-800 mb-2">Antrean Selesai!</h3>
-                <p class="text-slate-500 text-sm">Semua kandidat pada filter ini telah discreening.</p>
-                <button onclick="triggerScreeningFilter()" class="mt-6 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-colors">
+                <p class="text-slate-500 text-sm">Semua kandidat pada filter ini telah discreening atau data sinkronisasi kosong.</p>
+                <button onclick="triggerScreeningFilter()" class="mt-6 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-colors cursor-pointer">
                     <i class="fa-solid fa-rotate-right mr-1"></i> Muat Ulang Antrean
                 </button>
             </div>
@@ -33,27 +34,55 @@ function renderScreeningCard(list) {
     }
 
     const candidate = list[currentScreeningIndex];
+
+    // Validasi kondisi objek kandidat untuk mencegah crash jika data bernilai null/undefined
+    if (!candidate || typeof candidate !== 'object') {
+        container.innerHTML = `
+            <div class="bg-white rounded-3xl shadow-sm border border-rose-200 p-8 text-center">
+                <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-1">Kesalahan Sinkronisasi Data</h3>
+                <p class="text-slate-500 text-xs">Struktur data kandidat tidak valid atau kosong.</p>
+            </div>
+        `;
+        return;
+    }
     
+    // Pemetaan properti dengan Fallback aman (mengatasi inkonsistensi properti data seperti lastEducation / education)
+    const candidateId = candidate.id || '-';
+    const candidatePosition = candidate.position || '-';
+    const candidateName = candidate.name || 'Tanpa Nama';
+    const candidateAge = candidate.age || '-';
+    const candidateCity = candidate.city || '-';
+    const candidatePhone = candidate.phone || '-';
+    const candidateGender = candidate.gender || '-';
+    const candidateEducation = candidate.lastEducation || candidate.education || '-';
+    const candidateScore = candidate.score || '0';
+    const candidateAddress = candidate.fullAddress || '-';
+    const candidateStatus = candidate.status || 'RAW';
+    const candidateExperience = candidate.experience || 'Tidak ada catatan';
+
     // Label peringatan jika data terdeteksi ganda di sistem
     const duplicateWarning = candidate.isDuplicate ? 
         `<div class="bg-amber-100 text-amber-800 px-4 py-2 text-xs font-bold text-center border-b border-amber-200">
             <i class="fa-solid fa-triangle-exclamation mr-1"></i> Peringatan: Data duplikat terdeteksi
         </div>` : '';
 
-    // Render HTML Kartu Screening Komprehensif
+    // Render HTML Kartu Screening Komprehensif dengan data yang sudah divalidasi
     container.innerHTML = `
         <div id="active-card" class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden w-full transition-all duration-300 transform scale-100 opacity-100">
             ${duplicateWarning}
             <div class="p-6 border-b border-slate-100 flex justify-between items-start">
                 <div>
                     <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 mb-2 inline-block shadow-sm">
-                        <i class="fa-solid fa-briefcase"></i> ${candidate.position || '-'}
+                        <i class="fa-solid fa-briefcase"></i> ${candidatePosition}
                     </span>
-                    <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">${candidate.name || 'Tanpa Nama'}</h2>
-                    <span class="text-xs text-slate-400 font-mono">ID: ${candidate.id || '-'}</span>
+                    <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">${candidateName}</h2>
+                    <span class="text-xs text-slate-400 font-mono">ID: ${candidateId}</span>
                 </div>
                 <div class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl font-bold text-sm border border-slate-200">
-                    ${candidate.age || '-'} Thn
+                    ${candidateAge} Thn
                 </div>
             </div>
             
@@ -61,49 +90,49 @@ function renderScreeningCard(list) {
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Domisili</p>
-                        <p class="text-slate-700 font-semibold mt-1"><i class="fa-solid fa-location-dot text-slate-400 mr-1.5"></i> ${candidate.city || '-'}</p>
+                        <p class="text-slate-700 font-semibold mt-1"><i class="fa-solid fa-location-dot text-slate-400 mr-1.5"></i> ${candidateCity}</p>
                     </div>
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">No WhatsApp</p>
-                        <p class="text-slate-700 font-semibold mt-1"><i class="fa-brands fa-whatsapp text-emerald-500 mr-1.5"></i> ${candidate.phone || '-'}</p>
+                        <p class="text-slate-700 font-semibold mt-1"><i class="fa-brands fa-whatsapp text-emerald-500 mr-1.5"></i> ${candidatePhone}</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4 mt-3 text-xs">
                     <div>
                         <p class="font-bold text-slate-400 uppercase tracking-wider">Gender / Pendidikan</p>
-                        <p class="text-slate-700 font-semibold mt-1">${candidate.gender || '-'} • ${candidate.lastEducation || '-'}</p>
+                        <p class="text-slate-700 font-semibold mt-1">${candidateGender} • ${candidateEducation}</p>
                     </div>
                     <div>
                         <p class="font-bold text-slate-400 uppercase tracking-wider">Skor Screening</p>
-                        <p class="text-blue-600 font-bold mt-1 text-sm"><i class="fa-solid fa-star mr-1"></i> ${candidate.score || '0'}</p>
+                        <p class="text-blue-600 font-bold mt-1 text-sm"><i class="fa-solid fa-star mr-1"></i> ${candidateScore}</p>
                     </div>
                 </div>
                 
                 <div class="mt-4">
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Alamat Lengkap</p>
-                    <p class="text-slate-700 text-sm mt-1 leading-relaxed">${candidate.fullAddress || '-'}</p>
+                    <p class="text-slate-700 text-sm mt-1 leading-relaxed">${candidateAddress}</p>
                 </div>
                 
                 <div class="mt-4 flex items-center justify-between bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 shadow-inner">
                     <span class="text-xs font-bold text-blue-800">Progress Rekrutmen:</span>
-                    <span class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-bold shadow-sm">${candidate.status || 'RAW'}</span>
+                    <span class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-bold shadow-sm">${candidateStatus}</span>
                 </div>
 
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-4">
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Pengalaman / Keterangan</p>
-                    <p class="text-slate-700 text-sm leading-relaxed">${candidate.experience || 'Tidak ada catatan'}</p>
+                    <p class="text-slate-700 text-sm leading-relaxed">${candidateExperience}</p>
                 </div>
             </div>
             
             <div class="p-5 bg-slate-50 flex justify-between gap-3 border-t border-slate-100">
-                <button onclick="handleScreeningAction('${candidate.id}', 'REJECTED')" class="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                <button onclick="handleScreeningAction('${candidateId}', 'REJECTED')" class="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm">
                     <i class="fa-solid fa-xmark text-lg"></i> Reject
                 </button>
-                <button onclick="handleScreeningAction('${candidate.id}', 'SKIP')" class="w-16 bg-white border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm" title="Lewati Sementara">
+                <button onclick="handleScreeningAction('${candidateId}', 'SKIP')" class="w-16 bg-white border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm" title="Lewati Sementara">
                     <i class="fa-solid fa-rotate-right"></i>
                 </button>
-                <button onclick="handleScreeningAction('${candidate.id}', 'SHORTLIST')" class="flex-1 bg-blue-600 text-white hover:bg-blue-700 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20">
+                <button onclick="handleScreeningAction('${candidateId}', 'SHORTLIST')" class="flex-1 bg-blue-600 text-white hover:bg-blue-700 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20">
                     <i class="fa-solid fa-check text-lg"></i> Shortlist
                 </button>
             </div>
@@ -138,10 +167,6 @@ function handleScreeningAction(candidateId, action) {
                 const candidateIndex = globalCandidates.findIndex(c => c.id === candidateId);
                 if (candidateIndex !== -1) {
                     globalCandidates[candidateIndex].status = action;
-                    
-                    // TODO: Jika Anda sudah menghubungkan sistem ini ke Backend / Google Apps Script, 
-                    // panggil fungsi fetch API untuk sinkronisasi data (POST/PUT) di area ini.
-                    // contoh: syncDataToSheet(candidateId, action);
                 }
             }
         }
@@ -150,7 +175,7 @@ function handleScreeningAction(candidateId, action) {
         if (typeof currentScreeningIndex !== 'undefined' && typeof filteredScreeningList !== 'undefined') {
             currentScreeningIndex++;
             
-            // 4. Update indikator sisa jumlah antrean di tampilan index.html
+            // 4. Update indikator sisa jumlah antrean di antarmuka
             const queueCount = document.getElementById('queue-count');
             if (queueCount) {
                 const remaining = filteredScreeningList.length - currentScreeningIndex;
