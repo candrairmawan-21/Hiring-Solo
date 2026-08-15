@@ -65,10 +65,12 @@ function renderScreeningCard(list) {
     const candidateAddress = candidate.fullAddress || candidate.city || '-';
     const candidateStatus = candidate.status || 'RAW';
     const candidateExperience = candidate.experience || 'Tidak ada catatan';
-    // Kolom Q "Link CV" (field: cvLink dari code.gs) — ditampilkan hanya jika sudah terisi
-    // Hanya dianggap valid jika benar-benar berbentuk URL (http/https) — ini menyaring otomatis
-    // nilai kosong, teks "Belum Response", atau teks tampilan formula HYPERLINK() yang bukan URL.
-    const candidateCvLink = /^https?:\/\//i.test(candidate.cvLink || '') ? candidate.cvLink : '';
+    // Kolom Q "Link CV" (field: cvLink dari code.gs). Di Sheet, kolom ini berisi formula
+    // HYPERLINK() dengan teks tampilan "Lihat CV" — Apps Script getValues() hanya membaca teks
+    // tampilan tsb, bukan URL aslinya. Tombol ditampilkan HANYA jika sel terisi & bukan
+    // placeholder "Belum Response" (kosong = belum ada CV masuk).
+    const candidateCvLinkRaw = (candidate.cvLink || '').toString().trim();
+    const hasCvLink = candidateCvLinkRaw !== '' && candidateCvLinkRaw.toLowerCase() !== 'belum response';
 
     // Label peringatan jika data terdeteksi ganda di sistem
     const duplicateWarning = candidate.isDuplicate ? 
@@ -121,12 +123,16 @@ function renderScreeningCard(list) {
                     <p class="text-slate-700 text-sm mt-1 leading-relaxed">${candidateAddress}</p>
                 </div>
 
-                ${candidateCvLink ? `
+                ${hasCvLink ? `
                 <div class="flex items-center justify-between bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-100">
                     <span class="text-xs font-bold text-emerald-800"><i class="fa-solid fa-file-lines mr-1"></i> CV Tersedia</span>
-                    <a href="${candidateCvLink}" target="_blank" rel="noopener noreferrer" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-full font-bold shadow-sm transition-colors cursor-pointer">
+                    ${/^https?:\/\//i.test(candidateCvLinkRaw) ? `
+                    <a href="${candidateCvLinkRaw}" target="_blank" rel="noopener noreferrer" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-full font-bold shadow-sm transition-colors cursor-pointer">
                         Lihat CV <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i>
-                    </a>
+                    </a>` : `
+                    <span class="text-xs text-emerald-700 font-semibold px-3 py-1.5" title="Link CV belum bisa diambil otomatis dari Sheet — buka langsung dari Google Sheet kolom Q">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> Buka via Sheet
+                    </span>`}
                 </div>` : ''}
                 
                 <div class="mt-4 flex items-center justify-between bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 shadow-inner">
@@ -156,25 +162,20 @@ function renderScreeningCard(list) {
 }
 
 /**
- * Mendorong (push) hasil keputusan screening dari kartu ke Google Sheet via Apps Script Web App.
+ * Mendorong (push) hasil keputusan screening dari kartu ke Google Sheet.
  * - SELALU menulis field "screeningAwal" (kolom M "Screening Awal") = aksi yang diambil.
  * - Menulis field "status" (kolom V "Status Hiring") HANYA untuk REJECTED & SHORTLIST — SKIP
  *   tidak mengubah status pipeline, kandidat tetap RAW dan bisa muncul lagi di antrean.
- * - Payload mengikuti kontrak action "updateStatus" pada code.gs (doPost -> updateCandidateInMaster).
- *
- * ASUMSI (perlu dikonfirmasi): variabel global `API_URL` berisi URL Web App Apps Script, mengikuti
- * pola yang sama dengan fetchCandidatesFromSheet() di js/api.js (tidak diunggah untuk direview).
- * Jika nama variabel konfigurasi Anda berbeda, cukup sesuaikan baris pengecekan `API_URL` di bawah.
+ * - Memakai updateCandidateDataInSheet() dari js/api.js (sudah pakai CONFIG.API_URL yang benar,
+ *   dan sudah menangani toast error untuk kegagalan jaringan maupun kegagalan backend).
+ *   Di sini kita hanya menambahkan toast SUKSES yang spesifik untuk alur screening.
  *
  * @param {string} candidateId
  * @param {string} action - 'REJECTED' | 'SHORTLIST' | 'SKIP'
  */
 async function pushScreeningResultToSheet(candidateId, action) {
-    if (typeof API_URL === 'undefined' || !API_URL) {
-        console.error('pushScreeningResultToSheet: variabel global API_URL tidak ditemukan. Pastikan js/config.js mengekspos URL Web App Apps Script dengan nama ini (atau sesuaikan nama variabelnya di sini).');
-        if (typeof showToast === 'function') {
-            showToast('Gagal menyimpan: konfigurasi API_URL tidak ditemukan', 'error');
-        }
+    if (typeof updateCandidateDataInSheet !== 'function') {
+        console.error('pushScreeningResultToSheet: fungsi updateCandidateDataInSheet (js/api.js) tidak ditemukan. Pastikan js/api.js sudah dimuat sebelum js/screening.js.');
         return;
     }
 
@@ -183,38 +184,13 @@ async function pushScreeningResultToSheet(candidateId, action) {
         updates.status = action;
     }
 
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            // Content-Type text/plain sengaja dipakai agar browser tidak mengirim OPTIONS preflight,
-            // karena Apps Script Web App tidak menangani preflight CORS. Body tetap JSON valid dan
-            // dibaca oleh doPost() via JSON.parse(e.postData.contents).
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-                action: 'updateStatus',
-                candidateId: candidateId,
-                updates: updates
-            })
-        });
+    const success = await updateCandidateDataInSheet(candidateId, updates);
 
-        const result = await response.json();
-
-        if (result && result.success) {
-            if (typeof showToast === 'function') {
-                showToast('Data berhasil disimpan ke Google Sheet ✓', 'success');
-            }
-        } else {
-            console.error('pushScreeningResultToSheet: backend mengembalikan success=false', result);
-            if (typeof showToast === 'function') {
-                showToast('Gagal menyimpan data ke Google Sheet', 'error');
-            }
-        }
-    } catch (err) {
-        console.error('pushScreeningResultToSheet error:', err);
-        if (typeof showToast === 'function') {
-            showToast('Gagal menyimpan data (masalah koneksi)', 'error');
-        }
+    if (success && typeof showToast === 'function') {
+        showToast('Data berhasil disimpan ke Google Sheet ✓', 'success');
     }
+    // Kegagalan (jaringan maupun backend mengembalikan success:false) sudah ditampilkan
+    // sebagai toast oleh updateCandidateDataInSheet() di js/api.js — tidak perlu duplikasi di sini.
 }
 
 /**
