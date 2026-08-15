@@ -24,6 +24,10 @@ async function fetchCandidatesFromSheet() {
 async function updateCandidateDataInSheet(candidateId, updateData) {
     try {
         // Mengirim permintaan POST berisi ID kandidat dan data yang diubah
+        // Catatan: header Content-Type sengaja TIDAK diset manual. Saat body berupa string,
+        // fetch() otomatis memakai "text/plain;charset=UTF-8", yang menghindari OPTIONS
+        // preflight CORS — Apps Script Web App tidak menangani preflight. Body tetap JSON
+        // valid dan dibaca doPost() via JSON.parse(e.postData.contents).
         const response = await fetch(CONFIG.API_URL, {
             method: "POST",
             body: JSON.stringify({
@@ -34,7 +38,17 @@ async function updateCandidateDataInSheet(candidateId, updateData) {
         });
         
         const result = await response.json();
-        return result.success; // Bernilai true jika berhasil terupdate di sheet
+
+        // TEMUAN: sebelumnya kasus fetch sukses tapi backend mengembalikan success:false
+        // (mis. candidateId tidak ditemukan di Sheet) tidak diberi toast/log sama sekali,
+        // sehingga kegagalan bisa lolos tanpa disadari pengguna.
+        if (!result || !result.success) {
+            console.error("Update gagal, backend mengembalikan:", result);
+            showToast("Gagal menyinkronkan data ke Google Sheet.", "error");
+            return false;
+        }
+
+        return true; // Berhasil terupdate di sheet
     } catch (error) {
         console.error("Gagal mengupdate data:", error);
         showToast("Gagal menyinkronkan data ke Google Sheet.", "error");
