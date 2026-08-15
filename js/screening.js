@@ -59,9 +59,14 @@ function renderScreeningCard(list) {
     const candidateGender = candidate.gender || '-';
     const candidateEducation = candidate.lastEducation || candidate.education || '-';
     const candidateScore = candidate.score || '0';
-    const candidateAddress = candidate.fullAddress || '-';
+    // TEMUAN AUDIT: code.gs tidak pernah mengirim field "fullAddress" — kolom G "Alamat Lengkap"
+    // sebenarnya dipetakan ke field "city" (lihat getHeaderIndices: alamat/domisili -> indices.city).
+    // Fallback ke candidate.city ditambahkan agar section ini tidak selalu tampil "-".
+    const candidateAddress = candidate.fullAddress || candidate.city || '-';
     const candidateStatus = candidate.status || 'RAW';
     const candidateExperience = candidate.experience || 'Tidak ada catatan';
+    // Kolom Q "Link CV" (field: cvLink dari code.gs) — ditampilkan hanya jika sudah terisi
+    const candidateCvLink = candidate.cvLink || '';
 
     // Label peringatan jika data terdeteksi ganda di sistem
     const duplicateWarning = candidate.isDuplicate ? 
@@ -113,6 +118,14 @@ function renderScreeningCard(list) {
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Alamat Lengkap</p>
                     <p class="text-slate-700 text-sm mt-1 leading-relaxed">${candidateAddress}</p>
                 </div>
+
+                ${candidateCvLink ? `
+                <div class="flex items-center justify-between bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-100">
+                    <span class="text-xs font-bold text-emerald-800"><i class="fa-solid fa-file-lines mr-1"></i> CV Tersedia</span>
+                    <a href="${candidateCvLink}" target="_blank" rel="noopener noreferrer" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-full font-bold shadow-sm transition-colors cursor-pointer">
+                        Lihat CV <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i>
+                    </a>
+                </div>` : ''}
                 
                 <div class="mt-4 flex items-center justify-between bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 shadow-inner">
                     <span class="text-xs font-bold text-blue-800">Progress Rekrutmen:</span>
@@ -141,6 +154,68 @@ function renderScreeningCard(list) {
 }
 
 /**
+ * Mendorong (push) hasil keputusan screening dari kartu ke Google Sheet via Apps Script Web App.
+ * - SELALU menulis field "screeningAwal" (kolom M "Screening Awal") = aksi yang diambil.
+ * - Menulis field "status" (kolom V "Status Hiring") HANYA untuk REJECTED & SHORTLIST — SKIP
+ *   tidak mengubah status pipeline, kandidat tetap RAW dan bisa muncul lagi di antrean.
+ * - Payload mengikuti kontrak action "updateStatus" pada code.gs (doPost -> updateCandidateInMaster).
+ *
+ * ASUMSI (perlu dikonfirmasi): variabel global `API_URL` berisi URL Web App Apps Script, mengikuti
+ * pola yang sama dengan fetchCandidatesFromSheet() di js/api.js (tidak diunggah untuk direview).
+ * Jika nama variabel konfigurasi Anda berbeda, cukup sesuaikan baris pengecekan `API_URL` di bawah.
+ *
+ * @param {string} candidateId
+ * @param {string} action - 'REJECTED' | 'SHORTLIST' | 'SKIP'
+ */
+async function pushScreeningResultToSheet(candidateId, action) {
+    if (typeof API_URL === 'undefined' || !API_URL) {
+        console.error('pushScreeningResultToSheet: variabel global API_URL tidak ditemukan. Pastikan js/config.js mengekspos URL Web App Apps Script dengan nama ini (atau sesuaikan nama variabelnya di sini).');
+        if (typeof showToast === 'function') {
+            showToast('Gagal menyimpan: konfigurasi API_URL tidak ditemukan', 'error');
+        }
+        return;
+    }
+
+    const updates = { screeningAwal: action };
+    if (action !== 'SKIP') {
+        updates.status = action;
+    }
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            // Content-Type text/plain sengaja dipakai agar browser tidak mengirim OPTIONS preflight,
+            // karena Apps Script Web App tidak menangani preflight CORS. Body tetap JSON valid dan
+            // dibaca oleh doPost() via JSON.parse(e.postData.contents).
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                action: 'updateStatus',
+                candidateId: candidateId,
+                updates: updates
+            })
+        });
+
+        const result = await response.json();
+
+        if (result && result.success) {
+            if (typeof showToast === 'function') {
+                showToast('Data berhasil disimpan ke Google Sheet ✓', 'success');
+            }
+        } else {
+            console.error('pushScreeningResultToSheet: backend mengembalikan success=false', result);
+            if (typeof showToast === 'function') {
+                showToast('Gagal menyimpan data ke Google Sheet', 'error');
+            }
+        }
+    } catch (err) {
+        console.error('pushScreeningResultToSheet error:', err);
+        if (typeof showToast === 'function') {
+            showToast('Gagal menyimpan data (masalah koneksi)', 'error');
+        }
+    }
+}
+
+/**
  * Fungsi untuk menangani aksi pada kartu (Reject, Skip, Shortlist) beserta animasinya.
  * @param {string} candidateId - ID unik dari kandidat
  * @param {string} action - Aksi keputusan (SHORTLIST, REJECTED, SKIP)
@@ -159,15 +234,22 @@ function handleScreeningAction(candidateId, action) {
         }
     }
 
+    // 1b. Push ke Google Sheet berjalan paralel, TIDAK memblokir animasi/antrean supaya swipe
+    // tetap responsif. Notifikasi sukses/gagal muncul via toast begitu respons backend diterima.
+    pushScreeningResultToSheet(candidateId, action);
+
     // 2. Beri jeda agar animasi selesai sebelum mengubah state dan merender kartu baru
     setTimeout(() => {
-        // Jika bukan di-skip, update data master (globalCandidates)
-        if (action !== 'SKIP') {
-            if (typeof globalCandidates !== 'undefined') {
-                const candidateIndex = globalCandidates.findIndex(c => c.id === candidateId);
-                if (candidateIndex !== -1) {
+        if (typeof globalCandidates !== 'undefined') {
+            const candidateIndex = globalCandidates.findIndex(c => c.id === candidateId);
+            if (candidateIndex !== -1) {
+                // Jika bukan di-skip, update status pipeline lokal (optimistic update)
+                if (action !== 'SKIP') {
                     globalCandidates[candidateIndex].status = action;
                 }
+                // Update screeningAwal lokal untuk SEMUA aksi agar Slicer Progress konsisten
+                // tanpa perlu menunggu reload/sync ulang dari Sheet.
+                globalCandidates[candidateIndex].screeningAwal = action;
             }
         }
 
