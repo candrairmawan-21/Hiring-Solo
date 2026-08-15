@@ -66,7 +66,9 @@ function renderScreeningCard(list) {
     const candidateStatus = candidate.status || 'RAW';
     const candidateExperience = candidate.experience || 'Tidak ada catatan';
     // Kolom Q "Link CV" (field: cvLink dari code.gs) — ditampilkan hanya jika sudah terisi
-    const candidateCvLink = candidate.cvLink || '';
+    // Hanya dianggap valid jika benar-benar berbentuk URL (http/https) — ini menyaring otomatis
+    // nilai kosong, teks "Belum Response", atau teks tampilan formula HYPERLINK() yang bukan URL.
+    const candidateCvLink = /^https?:\/\//i.test(candidate.cvLink || '') ? candidate.cvLink : '';
 
     // Label peringatan jika data terdeteksi ganda di sistem
     const duplicateWarning = candidate.isDuplicate ? 
