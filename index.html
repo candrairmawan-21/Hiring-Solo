@@ -2093,13 +2093,15 @@
                             </h3>
                         </div>
 
+                        <!-- Slicer Posisi -->
                         <div class="flex-1 min-w-[200px]">
                             <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Posisi</label>
                             <select id="filter-pos" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                                 <option value="all">Semua Posisi</option>
                                 <option value="Kasir">Kasir</option>
-                                <option value="Pramuniaga">Pramuniaga</option>
-                                <option value="Store Boy">Store Boy</option>
+                                <option value="Promotor/Pramuniaga">Promotor/Pramuniaga</option>
+                                <option value="Store boy">Store boy</option>
+                                <option value="Supervisor">Supervisor</option>
                             </select>
                         </div>
                         <div class="flex-1 min-w-[200px]">
@@ -2123,32 +2125,35 @@
                                 <option value="31-35">31 - 35 Tahun</option>
                                 <option value="36+">36 Tahun ke atas</option>
                             </select>
-                        </div>
+                       <!-- Slicer Gender (Pria / Wanita) -->
                         <div class="flex-1 min-w-[160px]">
                             <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Gender</label>
                             <select id="filter-gender" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                                 <option value="all">Semua Gender</option>
-                                <option value="Laki-laki">Laki-laki</option>
-                                <option value="Perempuan">Perempuan</option>
+                                <option value="Pria">Pria</option>
+                                <option value="Wanita">Wanita</option>
                             </select>
                         </div>
+                        <!-- Slicer Pendidikan -->
                         <div class="flex-1 min-w-[160px]">
                             <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Pendidikan</label>
                             <select id="filter-edu" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                                 <option value="all">Semua Pend. Terakhir</option>
+                                <option value="SD">SD</option>
+                                <option value="SMP">SMP</option>
                                 <option value="SMA/SMK">SMA/SMK</option>
-                                <option value="D3/S1">D3/S1</option>
+                                <option value="D3">D3</option>
+                                <option value="D4/S1">D4/S1</option>
                             </select>
                         </div>
-                        <!-- Slicer Progress: difilter berdasarkan kolom M "Screening Awal" -->
+                        <!-- Slicer Progress -->
                         <div class="flex-1 min-w-[160px]">
                             <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Progress</label>
                             <select id="filter-progress" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                                 <option value="all">Semua Progress</option>
                                 <option value="BELUM">Belum Discreening</option>
-                                <option value="SKIP">Pernah Di-Skip</option>
                                 <option value="SHORTLIST">Shortlist</option>
-                                <option value="REJECTED">Reject</option>
+                                <option value="REJECT">Reject</option>
                             </select>
                         </div>
                         <div class="queue-summary text-xs font-semibold text-slate-600 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2">
@@ -2412,6 +2417,7 @@
         }
 
         // Inisialisasi Slicer & Antrean Screening
+        // Inisialisasi Slicer & Antrean Screening
         function initScreeningQueue() {
             const posFilter = document.getElementById('filter-pos').value;
             const cityFilter = document.getElementById('filter-city').value;
@@ -2419,6 +2425,7 @@
             const eduEl = document.getElementById('filter-edu');
             const ageEl = document.getElementById('filter-age');
             const progressEl = document.getElementById('filter-progress');
+            
             const genderFilter = genderEl ? genderEl.value : 'all';
             const eduFilter = eduEl ? eduEl.value : 'all';
             const ageFilter = ageEl ? ageEl.value : 'all';
@@ -2428,39 +2435,66 @@
             if (loadingEl) loadingEl.style.display = 'flex';
 
             filteredScreeningList = globalCandidates.filter(c => {
-                // Gate antrean sekarang 2 lapis:
-                // 1) status masih RAW (kolom V "Status Hiring") — safety net kalau kandidat sudah
-                //    diproses lebih lanjut lewat Kanban/Pipeline (mis. sudah HIRED di sana).
-                // 2) BELUM diputuskan lewat kartu screening ini (kolom M "Screening Awal") — karena
-                //    kartu sekarang HANYA menulis ke screeningAwal, bukan status lagi, kandidat yang
-                //    sudah di-Shortlist/Reject via kartu perlu dikeluarkan lewat cek screeningAwal
-                //    ini, bukan lewat status. SKIP sengaja TIDAK mengeluarkan kandidat dari antrean
-                //    (boleh muncul lagi untuk ditinjau ulang).
-                if (c.status !== 'RAW') return false;
-                const screeningAwalGate = c.screeningAwal || '';
-                if (screeningAwalGate === 'SHORTLIST' || screeningAwalGate === 'REJECTED') return false;
-                if (posFilter !== 'all' && c.position !== posFilter) return false;
+                // Pastikan hanya memunculkan data yang status Pipeline utamanya masih 'RAW'
+                if (c.status !== 'RAW') return false; 
+                
+                // --- 1. FILTER POSISI (Pencarian Mengandung Kata / Tidak Exact) ---
+                if (posFilter !== 'all') {
+                    const posValue = (c.position || '').toLowerCase();
+                    // Jika posValue tidak mengandung kata dari posFilter, maka sembunyikan
+                    if (!posValue.includes(posFilter.toLowerCase())) return false;
+                }
+                
+                // --- 2. FILTER DOMISILI ---
                 if (cityFilter !== 'all' && c.city !== cityFilter) return false;
+                
+                // --- 3. FILTER GENDER (Pria / Wanita) ---
                 if (genderFilter !== 'all' && c.gender !== genderFilter) return false;
-                // Fallback nama field sesuai screening.js: lastEducation diprioritaskan, lalu education
-                // (API code.gs mengirim field "education", kolom F "Pend. Terakhir").
-                if (eduFilter !== 'all' && (c.lastEducation || c.education) !== eduFilter) return false;
-                if (ageFilter !== 'all' && !isAgeInRange(c.age, ageFilter)) return false;
-                if (progressFilter !== 'all') {
-                    const screeningAwalValue = c.screeningAwal || '';
-                    if (progressFilter === 'BELUM') {
-                        if (screeningAwalValue !== '') return false;
-                    } else if (screeningAwalValue !== progressFilter) {
-                        return false;
+                
+                // --- 4. FILTER PENDIDIKAN (Penggabungan SMA/SMK) ---
+                if (eduFilter !== 'all') {
+                    // Gunakan huruf besar semua untuk menyamakan case
+                    const eduValue = (c.lastEducation || c.education || '').toUpperCase();
+                    
+                    if (eduFilter === 'SMA/SMK') {
+                        // Jika filter "SMA/SMK", loloskan jika value-nya SMA atau SMK
+                        if (eduValue !== 'SMA' && eduValue !== 'SMK' && eduValue !== 'SMA/SMK') return false;
+                    } else {
+                        // Untuk SD, SMP, D3, D4/S1 harus sama persis
+                        if (eduValue !== eduFilter.toUpperCase()) return false;
                     }
                 }
+                
+                // --- 5. FILTER USIA ---
+                if (ageFilter !== 'all' && !isAgeInRange(c.age, ageFilter)) return false;
+                
+                // --- 6. FILTER PROGRESS (Screening Awal) ---
+                if (progressFilter !== 'all') {
+                    // Bersihkan spasi dan jadikan huruf besar agar tidak sensitive case
+                    const screeningAwalValue = (c.screeningAwal || '').trim().toUpperCase();
+                    
+                    if (progressFilter === 'BELUM') {
+                        // Hanya lolos jika blank/kosong
+                        if (screeningAwalValue !== '') return false;
+                    } 
+                    else if (progressFilter === 'SHORTLIST') {
+                        // Harus berisi SHORTLIST
+                        if (screeningAwalValue !== 'SHORTLIST') return false;
+                    } 
+                    else if (progressFilter === 'REJECT') {
+                        // Bisa berisi REJECT atau REJECTED
+                        if (screeningAwalValue !== 'REJECT' && screeningAwalValue !== 'REJECTED') return false;
+                    }
+                }
+                // (Jika 'all', kode akan melewati blok filter progress ini dan menampilkan semua)
+
                 return true;
             });
 
             currentScreeningIndex = 0;
             renderScreeningCard(filteredScreeningList);
 
-            // Isi badge "Antrean Saring" begitu filter dijalankan, bukan hanya setelah aksi kartu pertama.
+            // Update badge angka antrean
             const queueCountEl = document.getElementById('queue-count');
             if (queueCountEl) queueCountEl.innerText = filteredScreeningList.length;
 
