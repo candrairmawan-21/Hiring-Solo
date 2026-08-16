@@ -36,7 +36,8 @@ function renderDatabaseTable(allCandidates, searchTerm = '') {
 
     // 3. Tampilkan pesan kosong jika data tidak ditemukan
     if (paginatedData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400">Tidak ada data kandidat yang ditemukan.</td></tr>`;
+        // Diubah menjadi colspan="6" karena ada penambahan 1 kolom (CV)
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Tidak ada data kandidat yang ditemukan.</td></tr>`;
         renderPaginationControls(0, 1);
         return;
     }
@@ -56,6 +57,38 @@ function renderDatabaseTable(allCandidates, searchTerm = '') {
             '<span class="text-rose-600 font-semibold"><i class="fa-solid fa-triangle-exclamation"></i> Duplikat</span>' : 
             '<span class="text-slate-400">Aman</span>';
 
+        // === LOGIKA TOMBOL WA (Hover Animasi) ===
+        const waNumber = c.phone || '-';
+        let waButtonHTML = '-';
+        if (waNumber !== '-') {
+            waButtonHTML = `
+                <button onclick="copyWaLink('${waNumber}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-500 hover:text-white border border-emerald-200 transition-colors shadow-sm group cursor-pointer">
+                    <i class="fa-brands fa-whatsapp text-sm"></i> 
+                    <span class="group-hover:hidden">${waNumber}</span>
+                    <span class="hidden group-hover:inline">Copy wa.me</span>
+                </button>
+            `;
+        }
+
+        // === LOGIKA TOMBOL CV (Kolom Q) ===
+        // Asumsi properti backend Anda bernama 'cv'. Jika beda, ganti variabel c.cv ini.
+        const cvLink = (c.cv || '').trim();
+        let cvButtonHTML = '';
+        
+        if (cvLink !== '' && cvLink.toLowerCase() !== 'belum response' && cvLink.toLowerCase().includes('http')) {
+            cvButtonHTML = `
+                <a href="${cvLink}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white border border-blue-200 transition-colors shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka CV
+                </a>
+            `;
+        } else {
+            cvButtonHTML = `
+                <button disabled class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 rounded-lg text-xs font-bold border border-slate-200 cursor-not-allowed">
+                    <i class="fa-solid fa-file-circle-xmark"></i> Kosong
+                </button>
+            `;
+        }
+
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 transition text-sm">
                 <td class="p-4 font-bold text-slate-800">
@@ -63,7 +96,8 @@ function renderDatabaseTable(allCandidates, searchTerm = '') {
                     <div class="text-xs text-slate-400 font-normal font-mono">ID: ${c.id || '-'}</div>
                 </td>
                 <td class="p-4 text-slate-600 font-medium">${c.position || '-'}</td>
-                <td class="p-4 text-slate-600 font-mono">${c.phone || '-'}</td>
+                <td class="p-4">${waButtonHTML}</td>
+                <td class="p-4">${cvButtonHTML}</td>
                 <td class="p-4">${statusBadge}</td>
                 <td class="p-4 text-xs">${duplicateInfo}</td>
             </tr>
