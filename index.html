@@ -2288,6 +2288,7 @@
                                 <th class="p-4">Nama Kandidat</th>
                                 <th class="p-4">Posisi</th>
                                 <th class="p-4">No WhatsApp</th>
+                                <th class="p-4">CV (Kolom Q)</th> <!-- Tambahan Kolom CV -->
                                 <th class="p-4">Status</th>
                                 <th class="p-4">Histori / Duplikat</th>
                             </tr>
@@ -2380,6 +2381,41 @@
             setTimeout(() => {
                 toast.classList.add('translate-y-24', 'opacity-0');
             }, 3200);
+        }
+        // Fungsi untuk copy format wa.me/ Nomor WA ke clipboard
+        function copyWaLink(phone) {
+            if (!phone) {
+                showToast('Nomor WhatsApp kosong', 'error');
+                return;
+            }
+            
+            // Bersihkan spasi, strip, atau karakter selain angka
+            let formattedPhone = phone.toString().replace(/\D/g, '');
+            
+            // Konversi nomor awal 0 menjadi 62
+            if (formattedPhone.startsWith('0')) {
+                formattedPhone = '62' + formattedPhone.substring(1);
+            } else if (!formattedPhone.startsWith('62')) {
+                formattedPhone = '62' + formattedPhone;
+            }
+
+            const waLink = `wa.me/${formattedPhone}`;
+            
+            // Copy menggunakan API Clipboard
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(waLink).then(() => {
+                    showToast(`Tersalin: ${waLink}`, 'success');
+                });
+            } else {
+                // Fallback untuk browser lawas / environment tanpa HTTPS
+                const tempInput = document.createElement('input');
+                tempInput.value = waLink;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                showToast(`Tersalin: ${waLink}`, 'success');
+            }
         }
 
         // Navigasi Tab Utama
