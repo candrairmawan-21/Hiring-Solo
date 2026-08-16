@@ -4,6 +4,22 @@
 // ============================================================================
 
 /**
+ * Format nilai kolom J "Score" menjadi persentase untuk ditampilkan di kartu.
+ * Menangani dua kemungkinan format data: pecahan (mis. 0.85) atau skala 0-100 (mis. 85).
+ * @param {*} rawScore - Nilai mentah dari field candidate.score
+ * @returns {string} - Contoh: "85%", atau "-" jika datanya tidak valid/kosong
+ */
+function formatScoreAsPercentage(rawScore) {
+    const num = Number(rawScore);
+    if (rawScore === '' || rawScore === null || rawScore === undefined || isNaN(num)) {
+        return '-';
+    }
+    // Skor berbentuk pecahan (mis. 0.85 dari sheet) dikonversi ke skala 0-100 dulu.
+    const percentValue = (num > 0 && num <= 1) ? num * 100 : num;
+    return Math.round(percentValue) + '%';
+}
+
+/**
  * Fungsi untuk merender kartu screening berdasarkan list kandidat dengan penanganan fallback dan error handling yang aman.
  * @param {Array} list - Array objek kandidat yang sudah melalui proses filter
  */
@@ -58,7 +74,7 @@ function renderScreeningCard(list) {
     const candidatePhone = candidate.phone || '-';
     const candidateGender = candidate.gender || '-';
     const candidateEducation = candidate.lastEducation || candidate.education || '-';
-    const candidateScore = candidate.score || '0';
+    const candidateScore = formatScoreAsPercentage(candidate.score);
     // TEMUAN AUDIT: code.gs tidak pernah mengirim field "fullAddress" — kolom G "Alamat Lengkap"
     // sebenarnya dipetakan ke field "city" (lihat getHeaderIndices: alamat/domisili -> indices.city).
     // Fallback ke candidate.city ditambahkan agar section ini tidak selalu tampil "-".
@@ -181,10 +197,10 @@ async function pushScreeningResultToSheet(candidateId, action) {
         return;
     }
 
+    // Hanya menulis ke kolom M "Screening Awal" (field: screeningAwal). Kolom V "Status Hiring"
+    // (field: status) SENGAJA tidak lagi disentuh dari kartu screening — itu domain papan
+    // Kanban/Pipeline yang mengelola tahap lanjutan secara terpisah.
     const updates = { screeningAwal: action };
-    if (action !== 'SKIP') {
-        updates.status = action;
-    }
 
     const success = await updateCandidateDataInSheet(candidateId, updates);
 
@@ -223,12 +239,9 @@ function handleScreeningAction(candidateId, action) {
         if (typeof globalCandidates !== 'undefined') {
             const candidateIndex = globalCandidates.findIndex(c => c.id === candidateId);
             if (candidateIndex !== -1) {
-                // Jika bukan di-skip, update status pipeline lokal (optimistic update)
-                if (action !== 'SKIP') {
-                    globalCandidates[candidateIndex].status = action;
-                }
-                // Update screeningAwal lokal untuk SEMUA aksi agar Slicer Progress konsisten
-                // tanpa perlu menunggu reload/sync ulang dari Sheet.
+                // Update screeningAwal lokal (optimistic) — ini satu-satunya field yang diubah
+                // kartu screening sekarang. Field status (Status Hiring/kolom V) SENGAJA tidak
+                // disentuh dari sini lagi; itu domain Kanban/Pipeline.
                 globalCandidates[candidateIndex].screeningAwal = action;
             }
         }
