@@ -969,8 +969,523 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
 }
 </style>
 
+
+<style id="audit-ui-overrides">
+.header-tools{position:relative;z-index:3;display:flex;align-items:center;gap:10px}
+.sync-indicator{
+    display:flex;align-items:center;gap:8px;font-size:11px;color:#d7e1ec;
+    background:rgba(255,255,255,.055);padding:6px 12px;border-radius:10px;
+    border:1px solid rgba(255,255,255,.10);white-space:nowrap;
+}
+.master-sheet-link{
+    display:flex;align-items:center;gap:8px;font-size:11px;color:#fff;
+    background:#16836c;padding:6px 12px;border-radius:10px;
+    border:1px solid rgba(22,131,108,.75);box-shadow:0 5px 14px rgba(22,131,108,.18);
+    transition:all .2s ease;cursor:pointer;white-space:nowrap;text-decoration:none;
+}
+.master-sheet-link:hover{background:#116b59;transform:translateY(-1px);box-shadow:0 8px 18px rgba(22,131,108,.24)}
+body.theme-day .sync-indicator{color:#66564e!important;background:rgba(247,238,229,.82)!important;border-color:#e4d2c3!important}
+body.theme-night .sync-indicator{color:#a8d0d8!important;background:rgba(6,20,31,.82)!important;border-color:rgba(39,231,255,.18)!important}
+body.theme-night .master-sheet-link{color:#00151c!important;background:#36ffc4!important;border-color:#36ffc4!important;box-shadow:0 0 16px rgba(54,255,196,.25),0 0 28px rgba(54,255,196,.10)!important}
+body.theme-night .master-sheet-link:hover{background:#72ffd6!important}
+#screening-filter-panel select{min-width:0}
+@media(max-width:1100px){
+  #screening-filter-panel > div:not(.queue-summary){flex:1 1 calc(33.333% - 16px)}
+}
+@media(max-width:760px){
+  #screening-filter-panel > div:not(.queue-summary){flex:1 1 calc(50% - 16px)}
+  .header-tools{gap:6px}
+  .sync-indicator span,.master-sheet-link span{display:none}
+  .sync-indicator,.master-sheet-link{width:34px;height:32px;padding:0;justify-content:center}
+}
+</style>
+
+
+<style id="final-ux-correction">
+/* ==========================================================
+   FINAL UX CORRECTION
+   1) Screening card must never overlap the slicer.
+   2) Night mode is intentionally calmer: readable, premium,
+      not an over-glowing neon wall.
+   ========================================================== */
+
+/* --- Screening layout --- */
+#view-screening{
+    min-height:0!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    scroll-padding-top:16px;
+}
+#view-screening > div:first-child{
+    position:relative!important;
+    z-index:20!important;
+    flex:none!important;
+}
+#view-screening .screening-stage,
+#view-screening > div:nth-child(2){
+    flex:1 1 auto!important;
+    min-height:0!important;
+    display:flex!important;
+    align-items:flex-start!important;
+    justify-content:center!important;
+    position:relative!important;
+    padding:28px 16px 18px!important;
+    overflow:visible!important;
+}
+#card-container,
+#screening-container{
+    position:relative!important;
+    z-index:5!important;
+    width:100%!important;
+    max-width:500px!important;
+    margin:0 auto!important;
+}
+#active-card{
+    position:relative!important;
+    z-index:6!important;
+    margin:0 auto!important;
+    max-height:none!important;
+}
+#screening-loading,
+#no-more-cards{
+    position:absolute!important;
+    top:28px!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+    z-index:4!important;
+    margin:0!important;
+}
+
+/* The keyboard legend belongs below the card, never beside/over it. */
+#view-screening > div:last-child{
+    position:relative!important;
+    z-index:10!important;
+    flex:none!important;
+    margin-top:2px!important;
+    margin-bottom:4px!important;
+}
+
+/* --- Day: keep the map-like palette but improve readability --- */
+body.theme-day #view-screening > div:first-child{
+    background:rgba(255,250,245,.96)!important;
+    box-shadow:0 8px 24px rgba(116,78,54,.07)!important;
+}
+body.theme-day #view-screening label{
+    color:#725e54!important;
+}
+body.theme-day #view-screening select{
+    color:#3d312c!important;
+    background:#fffaf4!important;
+    border-color:#dec8b8!important;
+}
+body.theme-day #view-screening select:hover{
+    border-color:#c1734c!important;
+}
+
+/* --- Night: subdued Tron / command-center --- */
+body.theme-night{
+    --theme-bg:#08111c!important;
+    --theme-surface:#0d1926!important;
+    --theme-surface-2:#101f2e!important;
+    --theme-text:#e8f5f7!important;
+    --theme-muted:#8ca8b1!important;
+    --theme-line:rgba(73,190,207,.18)!important;
+    --theme-accent:#49becf!important;
+    --theme-accent-2:#2e899b!important;
+    --theme-glow:rgba(73,190,207,.12)!important;
+    --theme-shadow:0 14px 38px rgba(0,0,0,.28)!important;
+    background:
+        radial-gradient(circle at 14% 8%,rgba(41,112,131,.09),transparent 27%),
+        radial-gradient(circle at 88% 84%,rgba(104,45,78,.055),transparent 25%),
+        linear-gradient(145deg,#08111c 0%,#0a1521 55%,#07101a 100%)!important;
+}
+
+body.theme-night main:before{
+    opacity:.055!important;
+    background-image:
+        linear-gradient(rgba(73,190,207,.10) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(73,190,207,.10) 1px,transparent 1px)!important;
+    background-size:48px 48px!important;
+    mask-image:linear-gradient(to bottom,rgba(0,0,0,.45),transparent 78%)!important;
+}
+body.theme-night .app-header{
+    background:linear-gradient(115deg,#08111c,#0b1724 55%,#102331)!important;
+    box-shadow:0 8px 26px rgba(0,0,0,.28)!important;
+}
+body.theme-night .app-header:after{
+    background:radial-gradient(circle,rgba(73,190,207,.10),transparent 68%)!important;
+}
+body.theme-night section h2{
+    text-shadow:none!important;
+    color:#edf8fa!important;
+}
+body.theme-night section h2 + p{
+    color:#819da6!important;
+}
+body.theme-night .text-\[\#b85c43\],
+body.theme-night .text-blue-600{
+    color:#59c9d8!important;
+    text-shadow:none!important;
+}
+
+/* Night dashboard: glow only on accents, not on every surface. */
+body.theme-night #view-dashboard .grid > div{
+    background:linear-gradient(145deg,#0d1926,#0b1723)!important;
+    border-color:rgba(73,190,207,.16)!important;
+    box-shadow:0 12px 30px rgba(0,0,0,.26)!important;
+}
+body.theme-night #view-dashboard .grid > div:hover{
+    border-color:rgba(73,190,207,.28)!important;
+    box-shadow:0 14px 34px rgba(0,0,0,.30)!important;
+}
+body.theme-night #view-dashboard .grid > div:before{
+    width:3px!important;
+    background:#49becf!important;
+    box-shadow:0 0 9px rgba(73,190,207,.32)!important;
+}
+body.theme-night #view-dashboard .grid > div:nth-child(2):before{
+    background:#d36a79!important;
+    box-shadow:0 0 9px rgba(211,106,121,.28)!important;
+}
+body.theme-night #view-dashboard .grid > div:nth-child(3):before{
+    background:#9b7ac4!important;
+    box-shadow:0 0 9px rgba(155,122,196,.25)!important;
+}
+body.theme-night #view-dashboard .grid > div:nth-child(4):before{
+    background:#48c7a1!important;
+    box-shadow:0 0 9px rgba(72,199,161,.25)!important;
+}
+body.theme-night #view-dashboard .grid > div h3{
+    color:#edf8fa!important;
+    text-shadow:none!important;
+}
+
+/* Night chart: rose/amber/violet/cyan/green, restrained glow. */
+body.theme-night #dashboard-position-bars:before{
+    opacity:.35!important;
+    background:linear-gradient(rgba(73,190,207,.06) 1px,transparent 1px)!important;
+    background-size:100% 36px!important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(1) [class*="bg-"]{
+    background:#d95d73!important;
+    box-shadow:0 0 8px rgba(217,93,115,.30)!important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(2) [class*="bg-"]{
+    background:#c38a54!important;
+    box-shadow:0 0 8px rgba(195,138,84,.26)!important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(3) [class*="bg-"]{
+    background:#9677bd!important;
+    box-shadow:0 0 8px rgba(150,119,189,.24)!important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(4) [class*="bg-"]{
+    background:#4aaabd!important;
+    box-shadow:0 0 8px rgba(74,170,189,.25)!important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(5) [class*="bg-"]{
+    background:#4ab88f!important;
+    box-shadow:0 0 8px rgba(74,184,143,.23)!important;
+}
+
+/* Night screening card: premium dark surface, no eye-searing glow. */
+body.theme-night #active-card{
+    background:linear-gradient(145deg,#101d2b,#0d1824)!important;
+    border-color:rgba(73,190,207,.18)!important;
+    box-shadow:0 18px 45px rgba(0,0,0,.34)!important;
+}
+body.theme-night #active-card .bg-slate-50{
+    background:#111f2d!important;
+    border-color:rgba(73,190,207,.10)!important;
+}
+body.theme-night #active-card .bg-slate-100{
+    background:#152331!important;
+    border-color:rgba(73,190,207,.12)!important;
+}
+body.theme-night #active-card .text-slate-800,
+body.theme-night #active-card .text-slate-700{
+    color:#e8f5f7!important;
+}
+body.theme-night #active-card .text-slate-500,
+body.theme-night #active-card .text-slate-400{
+    color:#8da8b1!important;
+}
+body.theme-night #active-card .text-blue-600{
+    color:#5bc7d6!important;
+    text-shadow:none!important;
+}
+body.theme-night #active-card .bg-blue-600{
+    background:#287f92!important;
+    box-shadow:0 7px 18px rgba(40,127,146,.22)!important;
+}
+body.theme-night #active-card .text-rose-600{
+    color:#e27b8b!important;
+}
+
+/* Slicer panel should visually sit above the workspace. */
+body.theme-night #view-screening > div:first-child{
+    background:rgba(13,25,38,.96)!important;
+    border-color:rgba(73,190,207,.15)!important;
+    box-shadow:0 10px 28px rgba(0,0,0,.25)!important;
+}
+body.theme-night #view-screening label{
+    color:#8ca8b1!important;
+}
+body.theme-night #view-screening select{
+    color:#e8f5f7!important;
+    background:#0b1825!important;
+    border-color:rgba(73,190,207,.16)!important;
+}
+body.theme-night #view-screening select:focus{
+    border-color:#49becf!important;
+    box-shadow:0 0 0 3px rgba(73,190,207,.08)!important;
+}
+
+/* Don't let utility classes force a huge white loading layer over the card. */
+body.theme-night #screening-loading,
+body.theme-night #no-more-cards{
+    background:#0d1926!important;
+    border-color:rgba(73,190,207,.16)!important;
+    box-shadow:0 16px 38px rgba(0,0,0,.30)!important;
+}
+
+@media(max-width:900px){
+    #view-screening > div:nth-child(2){padding-top:22px!important}
+}
+</style>
+
+
+<style id="screening-left-slicer-layout">
+/* ==========================================================
+   SCREENING V2 — LEFT FILTER / LARGER CANDIDATE CARD
+   Desktop:
+      ┌──────────────┬─────────────────────────────────────┐
+      │ SLICERS      │ Candidate Card                      │
+      │ left rail    │                                     │
+      │              │                                     │
+      └──────────────┴─────────────────────────────────────┘
+   Mobile: slicers return to top, card below.
+   ========================================================== */
+
+#screening-workspace{
+    display:grid!important;
+    grid-template-columns:minmax(260px,300px) minmax(0,1fr)!important;
+    gap:22px!important;
+    align-items:stretch!important;
+    min-height:0!important;
+    width:100%!important;
+}
+
+#screening-filter-panel-wrap{
+    min-width:0!important;
+    min-height:0!important;
+}
+
+#screening-filter-panel{
+    width:100%!important;
+    height:100%!important;
+    margin:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    gap:14px!important;
+    padding:18px!important;
+    overflow-y:auto!important;
+    scrollbar-width:thin;
+}
+
+#screening-filter-panel > div{
+    width:100%!important;
+    flex:0 0 auto!important;
+    min-width:0!important;
+}
+
+#screening-filter-panel .queue-summary{
+    margin-top:auto!important;
+    justify-content:center!important;
+    width:100%!important;
+    padding:12px 14px!important;
+}
+
+#screening-filter-panel label{
+    font-size:10px!important;
+    letter-spacing:.11em!important;
+}
+
+#screening-filter-panel select{
+    width:100%!important;
+    min-height:46px!important;
+    padding-right:34px!important;
+}
+
+.screening-card-workspace{
+    min-width:0!important;
+    min-height:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+}
+
+.screening-card-workspace .screening-stage{
+    flex:1 1 auto!important;
+    min-height:520px!important;
+    height:auto!important;
+    padding:8px 12px 16px!important;
+    display:flex!important;
+    align-items:flex-start!important;
+    justify-content:center!important;
+    overflow:visible!important;
+}
+
+.screening-card-workspace #card-container,
+.screening-card-workspace #screening-container{
+    width:100%!important;
+    max-width:720px!important;
+}
+
+.screening-card-workspace #active-card{
+    width:100%!important;
+    max-width:720px!important;
+    margin:0 auto!important;
+}
+
+.screening-card-workspace #screening-loading,
+.screening-card-workspace #no-more-cards{
+    max-width:560px!important;
+    width:min(100%,560px)!important;
+    top:24px!important;
+}
+
+.screening-card-workspace > #view-screening-keyboard-hint{
+    flex:0 0 auto!important;
+}
+
+/* Make the filter rail visually intentional instead of a stretched horizontal bar. */
+body.theme-day #screening-filter-panel{
+    background:rgba(255,250,245,.94)!important;
+    border:1px solid #e7d5c6!important;
+    box-shadow:0 12px 30px rgba(116,78,54,.07)!important;
+}
+body.theme-night #screening-filter-panel{
+    background:linear-gradient(180deg,#0c1b2a,#0a1724)!important;
+    border:1px solid rgba(73,190,207,.14)!important;
+    box-shadow:0 14px 34px rgba(0,0,0,.24)!important;
+}
+
+/* Card becomes the visual focus. */
+body.theme-day .screening-card-workspace #active-card{
+    box-shadow:0 22px 46px rgba(83,58,44,.15)!important;
+    border-color:#e1c9b9!important;
+}
+body.theme-night .screening-card-workspace #active-card{
+    box-shadow:0 22px 48px rgba(0,0,0,.36)!important;
+    border-color:rgba(73,190,207,.16)!important;
+}
+
+/* Keep the keyboard legend aligned to the card area. */
+.screening-card-workspace .text-center.text-slate-400{
+    width:fit-content!important;
+    max-width:100%!important;
+    margin:0 auto 2px!important;
+}
+
+/* Desktop height optimization */
+@media(min-width:1100px){
+    #screening-workspace{
+        grid-template-columns:300px minmax(560px,1fr)!important;
+    }
+    .screening-card-workspace .screening-stage{
+        min-height:580px!important;
+        padding-top:2px!important;
+    }
+}
+
+@media(min-width:1400px){
+    #screening-workspace{
+        grid-template-columns:310px minmax(700px,1fr)!important;
+        gap:28px!important;
+    }
+    .screening-card-workspace #active-card{
+        max-width:760px!important;
+    }
+}
+
+/* Tablet: compact left rail */
+@media(max-width:1099px) and (min-width:761px){
+    #screening-workspace{
+        grid-template-columns:250px minmax(0,1fr)!important;
+        gap:16px!important;
+    }
+    #screening-filter-panel{
+        padding:15px!important;
+    }
+    .screening-card-workspace .screening-stage{
+        min-height:500px!important;
+    }
+}
+
+/* Mobile: return to vertical flow */
+@media(max-width:760px){
+    #screening-workspace{
+        display:flex!important;
+        flex-direction:column!important;
+        gap:16px!important;
+    }
+
+    #screening-filter-panel{
+        height:auto!important;
+        max-height:none!important;
+        display:grid!important;
+        grid-template-columns:repeat(2,minmax(0,1fr))!important;
+        gap:12px!important;
+        overflow:visible!important;
+    }
+
+    #screening-filter-panel .queue-summary{
+        grid-column:1 / -1!important;
+        margin-top:0!important;
+    }
+
+    .screening-card-workspace .screening-stage{
+        min-height:0!important;
+        padding:8px 0 14px!important;
+    }
+
+    .screening-card-workspace #active-card{
+        max-width:100%!important;
+    }
+}
+
+@media(max-width:520px){
+    #screening-filter-panel{
+        grid-template-columns:1fr!important;
+    }
+}
+</style>
+
+
+<style id="screening-filter-rail-title">
+.screening-filter-rail-title{
+    flex:0 0 auto;
+    padding-bottom:2px;
+    border-bottom:1px solid rgba(148,163,184,.16);
+}
+body.theme-day .screening-filter-rail-title .text-slate-800{color:#34251f!important}
+body.theme-night .screening-filter-rail-title{
+    border-bottom-color:rgba(73,190,207,.12)!important;
+}
+body.theme-night .screening-filter-rail-title .text-slate-800{
+    color:#e8f5f7!important;
+}
+body.theme-night .screening-filter-rail-title span{
+    background:rgba(73,190,207,.08)!important;
+    color:#63c7d4!important;
+}
+</style>
+
 </head>
-<body class="flex flex-col h-screen overflow-hidden text-slate-800">
+<body class="theme-day flex flex-col h-screen overflow-hidden text-slate-800">
 
     <!-- Top Navigation Bar (Clean & Modern) -->
     <header class="app-header text-white px-6 py-3.5 flex justify-between items-center z-20">
@@ -1007,14 +1522,23 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
                 <button id="theme-day" onclick="setTheme('day')" title="Day mode"><i class="fa-solid fa-sun"></i></button>
                 <button id="theme-night" onclick="setTheme('night')" title="Night mode"><i class="fa-solid fa-moon"></i></button>
             </div>
-            <a href="https://docs.google.com/spreadsheets/d/1PMciImAHO4EF1IzGognIVCeYrP2lxAr_YIsnfvVI-Bc/edit?gid=1223093680#gid=1223093680" target="_blank" rel="noopener noreferrer" title="Buka Google Sheet Master di tab baru" class="hidden md:flex items-center gap-2 text-xs text-white bg-emerald-600 hover:bg-emerald-700 px-3.5 py-1.5 rounded-xl border border-emerald-500 shadow-sm transition cursor-pointer">
-                <i class="fa-solid fa-file-excel"></i>
-                <span class="font-medium">Buka Master Sheet</span>
-            </a>
-            <div class="hidden md:flex items-center gap-2 text-xs text-slate-300 bg-slate-800/80 px-3.5 py-1.5 rounded-xl border border-slate-700/60 shadow-inner">
-            <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-            <span class="font-medium">LIVE • SHEET SYNC</span>
-        </div>
+            <div class="header-tools">
+                <div class="sync-indicator">
+                    <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                    <span class="font-medium">LIVE • SHEET SYNC</span>
+                </div>
+                <a
+                    href="https://docs.google.com/spreadsheets/d/1PMciImAHO4EF1IzGognIVCeYrP2lxAr_YIsnfvVI-Bc/edit?gid=1223093680#gid=1223093680"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="master-sheet-link"
+                    title="Buka Google Sheet Master"
+                    aria-label="Buka Google Sheet Master"
+                >
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span class="font-medium">Buka Master Sheet</span>
+                </a>
+            </div>
     </header>
 
     <!-- Main Content Area -->
@@ -1094,8 +1618,23 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
                 </div>
             </div>
             
+            <!-- Screening workspace: slicer kiri, candidate card kanan -->
+            <div id="screening-workspace" class="screening-workspace flex-1 min-h-0">
+                <aside id="screening-filter-panel-wrap" class="screening-filter-sidebar">
+
+                    <div class="screening-filter-rail-title">
+                        <div class="flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-lg flex items-center justify-center bg-[#b85c43]/10 text-[#b85c43]">
+                                <i class="fa-solid fa-sliders"></i>
+                            </span>
+                            <div>
+                                <div class="text-[10px] font-bold uppercase tracking-[.14em] text-[#b85c43]">Candidate Filters</div>
+                                <div class="text-sm font-bold text-slate-800 mt-0.5">Screening Slicer</div>
+                            </div>
+                        </div>
+                    </div>
             <!-- Slicer & Filter Panel -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end border border-slate-200/80">
+            <div id="screening-filter-panel" role="group" aria-label="Filter kandidat screening" class="bg-white p-5 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-end border border-slate-200/80">
                 <div class="flex-1 min-w-[200px]">
                     <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Posisi</label>
                     <select id="filter-pos" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
@@ -1116,55 +1655,56 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
                         <option value="Sragen">Sragen</option>
                     </select>
                 </div>
+
+                <!-- Slicer Tambahan: Usia -->
                 <div class="flex-1 min-w-[160px]">
                     <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Usia</label>
-                    <select id="filter-age" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                    <select id="filter-age" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                         <option value="all">Semua Usia</option>
-                        <option value="17-20">17 - 20 Tahun</option>
-                        <option value="21-25">21 - 25 Tahun</option>
-                        <option value="26-30">26 - 30 Tahun</option>
-                        <option value="31-35">31 - 35 Tahun</option>
-                        <option value="36+">36 Tahun ke atas</option>
+                        <option value="18-20">18–20 Tahun</option>
+                        <option value="21-25">21–25 Tahun</option>
+                        <option value="26-30">26–30 Tahun</option>
+                        <option value="31+">31 Tahun ke atas</option>
                     </select>
                 </div>
+
+                <!-- Slicer Tambahan: Gender -->
                 <div class="flex-1 min-w-[160px]">
                     <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Gender</label>
-                    <select id="filter-gender" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                    <select id="filter-gender" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                         <option value="all">Semua Gender</option>
                         <option value="Laki-laki">Laki-laki</option>
                         <option value="Perempuan">Perempuan</option>
                     </select>
                 </div>
+
+                <!-- Slicer Tambahan: Pendidikan -->
                 <div class="flex-1 min-w-[160px]">
                     <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Pendidikan</label>
-                    <select id="filter-edu" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                    <select id="filter-edu" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                         <option value="all">Semua Pend. Terakhir</option>
                         <option value="SMA/SMK">SMA/SMK</option>
                         <option value="D3/S1">D3/S1</option>
                     </select>
                 </div>
-                <!-- Slicer Progress: difilter berdasarkan kolom M "Screening Awal" (field: screeningAwal),
-                     yaitu hasil aksi tombol kartu (RAW/SKIP/SHORTLIST/REJECTED) yang di-push ke Sheet.
-                     Nilai "Shortlist"/"Reject" jarang muncul di sini karena begitu status berubah,
-                     kandidat otomatis keluar dari antrean RAW — opsi tetap disediakan untuk jaga-jaga
-                     jika ada data yang diedit manual di Sheet. -->
-                <div class="flex-1 min-w-[160px]">
+
+                <!-- Slicer Tambahan: Progress -->
+                <div class="flex-1 min-w-[180px]">
                     <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Progress</label>
-                    <select id="filter-progress" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                    <select id="filter-progress" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                         <option value="all">Semua Progress</option>
-                        <option value="BELUM">Belum Discreening</option>
-                        <option value="SKIP">Pernah Di-Skip</option>
-                        <option value="SHORTLIST">Shortlist</option>
-                        <option value="REJECTED">Reject</option>
                     </select>
                 </div>
-                <div class="text-xs font-semibold text-slate-600 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2">
+
+                <div class="queue-summary text-xs font-semibold text-slate-600 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2">
                     <i class="fa-solid fa-filter text-[#b85c43]"></i> Antrean Saring: <span id="queue-count" class="font-bold text-[#b85c43] text-sm">0</span> kandidat
                 </div>
             </div>
+                </aside>
 
+                <div class="screening-card-workspace min-w-0">
             <!-- Card Container Area -->
-            <div class="flex-1 flex justify-center items-center relative min-h-[420px]">
+            <div class="screening-stage flex-1 flex justify-center items-center relative min-h-[420px]">
                 <!-- Loading State Indikator -->
                 <div id="screening-loading" class="absolute flex flex-col items-center justify-center text-slate-400 bg-white/80 backdrop-blur-xs p-8 rounded-2xl border border-slate-200 shadow-sm w-full max-w-md text-center z-0">
                     <div class="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin mb-3"></div>
@@ -1180,17 +1720,21 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
                 </div>
                 
                 <!-- Active Card -->
-                <div id="card-container" class="w-full max-w-md relative z-10 transition-transform duration-300">
-                    <!-- Dirender via screening.js -->
+                <div id="card-container" class="w-full max-w-[500px] relative z-10 transition-transform duration-300">
+                    <div id="screening-container" class="w-full">
+                        <!-- Dirender via screening.js -->
+                    </div>
                 </div>
             </div>
-            
-            <div class="text-center text-slate-400 text-xs mt-4 flex items-center justify-center gap-4 bg-white/60 py-2.5 px-4 rounded-xl border border-slate-200/60 w-fit mx-auto shadow-xs">
+
+            <div id="view-screening-keyboard-hint" class="text-center text-slate-400 text-xs mt-4 flex items-center justify-center gap-4 bg-white/60 py-2.5 px-4 rounded-xl border border-slate-200/60 w-fit mx-auto shadow-xs">
                 <span><kbd class="px-2 py-1 bg-white border border-slate-300 rounded shadow-xs text-xs font-semibold text-slate-600">←</kbd> Reject</span>
                 <span class="text-slate-300">|</span>
                 <span><kbd class="px-2 py-1 bg-white border border-slate-300 rounded shadow-xs text-xs font-semibold text-slate-600">↻</kbd> Skip (Pindah Belakang)</span>
                 <span class="text-slate-300">|</span>
                 <span><kbd class="px-2 py-1 bg-white border border-slate-300 rounded shadow-xs text-xs font-semibold text-slate-600">→</kbd> Shortlist</span>
+            </div>
+                </div>
             </div>
         </section>
 
@@ -1355,6 +1899,7 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
 
         let globalCandidates = [];
         let filteredScreeningList = [];
+        let currentScreeningIndex = 0;
 
         // Sistem Toast Global
         function showToast(message, type = 'success') {
@@ -1398,72 +1943,126 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
             }
 
             // Inisialisasi tampilan per tab
-            if (tab === 'dashboard') renderDashboardMetrics(globalCandidates);
+            if (tab === 'dashboard' && typeof renderDashboardMetrics === 'function') renderDashboardMetrics(globalCandidates);
             if (tab === 'screening') initScreeningQueue();
-            if (tab === 'pipeline') renderKanbanBoard(globalCandidates);
-            if (tab === 'database') renderDatabaseTable(globalCandidates);
+            if (tab === 'pipeline' && typeof renderKanbanBoard === 'function') renderKanbanBoard(globalCandidates);
+            if (tab === 'database' && typeof renderDatabaseTable === 'function') renderDatabaseTable(globalCandidates);
         }
 
-        // Helper: cek apakah usia kandidat termasuk dalam rentang yang dipilih pada Slicer Usia
-        function isAgeInRange(age, rangeValue) {
-            const numAge = Number(age);
-            if (isNaN(numAge)) return false;
-            switch (rangeValue) {
-                case '17-20': return numAge >= 17 && numAge <= 20;
-                case '21-25': return numAge >= 21 && numAge <= 25;
-                case '26-30': return numAge >= 26 && numAge <= 30;
-                case '31-35': return numAge >= 31 && numAge <= 35;
-                case '36+':   return numAge >= 36;
-                default: return true;
+        // ============================================================
+        // SCREENING FILTER ENGINE
+        // ============================================================
+        function getCandidateField(candidate, keys) {
+            for (const key of keys) {
+                const value = candidate?.[key];
+                if (value !== undefined && value !== null && String(value).trim() !== '') return value;
             }
+            return '';
         }
 
-        // Inisialisasi Slicer & Antrean Screening
+        function normalizeText(value) {
+            return String(value ?? '').trim().toLowerCase();
+        }
+
+        function normalizeGender(value) {
+            const v = normalizeText(value);
+            if (['laki-laki','laki laki','laki','male','pria'].includes(v)) return 'Laki-laki';
+            if (['perempuan','female','wanita'].includes(v)) return 'Perempuan';
+            return String(value ?? '').trim();
+        }
+
+        function normalizeEducation(value) {
+            const v = normalizeText(value);
+            if (['sma','smk','sma/smk','sma - smk','sma / smk'].includes(v)) return 'SMA/SMK';
+            if (['d3','d4','s1','d3/s1','d3 / s1','d4/s1'].includes(v)) return 'D3/S1';
+            return String(value ?? '').trim();
+        }
+
+        function parseCandidateAge(candidate) {
+            const raw = getCandidateField(candidate, ['age','usia','umur','Age','Usia','Umur']);
+            const n = Number(String(raw).replace(',', '.').replace(/[^0-9.]/g, ''));
+            return Number.isFinite(n) ? n : null;
+        }
+
+        function ageMatches(age, selectedRange) {
+            if (selectedRange === 'all') return true;
+            if (age === null) return false;
+            if (selectedRange === '18-20') return age >= 18 && age <= 20;
+            if (selectedRange === '21-25') return age >= 21 && age <= 25;
+            if (selectedRange === '26-30') return age >= 26 && age <= 30;
+            if (selectedRange === '31+') return age >= 31;
+            return true;
+        }
+
+        function getCandidateProgress(candidate) {
+            return String(getCandidateField(candidate, [
+                'progress','Progress','PROGRESS','stage','Stage',
+                'status','Status','STATUS'
+            ])).trim();
+        }
+
+        function syncProgressSlicerOptions() {
+            const select = document.getElementById('filter-progress');
+            if (!select) return;
+
+            const currentValue = select.value || 'all';
+            const values = [...new Set(
+                (Array.isArray(globalCandidates) ? globalCandidates : [])
+                    .map(getCandidateProgress)
+                    .filter(Boolean)
+            )].sort((a,b) => a.localeCompare(b, 'id'));
+
+            select.innerHTML = '<option value="all">Semua Progress</option>';
+            values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+            select.value = values.includes(currentValue) ? currentValue : 'all';
+        }
+
         function initScreeningQueue() {
-            const posFilter = document.getElementById('filter-pos').value;
-            const cityFilter = document.getElementById('filter-city').value;
-            const genderEl = document.getElementById('filter-gender');
-            const eduEl = document.getElementById('filter-edu');
-            const ageEl = document.getElementById('filter-age');
-            const progressEl = document.getElementById('filter-progress');
-            const genderFilter = genderEl ? genderEl.value : 'all';
-            const eduFilter = eduEl ? eduEl.value : 'all';
-            const ageFilter = ageEl ? ageEl.value : 'all';
-            const progressFilter = progressEl ? progressEl.value : 'all';
+            const posFilter = document.getElementById('filter-pos')?.value || 'all';
+            const cityFilter = document.getElementById('filter-city')?.value || 'all';
+            const ageFilter = document.getElementById('filter-age')?.value || 'all';
+            const genderFilter = document.getElementById('filter-gender')?.value || 'all';
+            const eduFilter = document.getElementById('filter-edu')?.value || 'all';
+            const progressFilter = document.getElementById('filter-progress')?.value || 'all';
             const loadingEl = document.getElementById('screening-loading');
 
             if (loadingEl) loadingEl.style.display = 'flex';
 
-            filteredScreeningList = globalCandidates.filter(c => {
-                // Kartu screening tetap difokuskan pada kandidat berstatus RAW (kolom "Status Hiring").
-                // Slicer Progress TIDAK mengubah gate ini — ia memfilter di dalam pool RAW berdasarkan
-                // kolom "Screening Awal" (lihat di bawah), sehingga tidak bentrok dengan shortcut
-                // keyboard (←/→/Space) yang juga hardcode ke status RAW (lihat listener di bawah).
-                if (c.status !== 'RAW') return false;
-                if (posFilter !== 'all' && c.position !== posFilter) return false;
-                if (cityFilter !== 'all' && c.city !== cityFilter) return false;
-                if (genderFilter !== 'all' && c.gender !== genderFilter) return false;
-                // Fallback nama field sesuai screening.js: lastEducation diprioritaskan, lalu education
-                // (API code.gs mengirim field "education", kolom F "Pend. Terakhir").
-                if (eduFilter !== 'all' && (c.lastEducation || c.education) !== eduFilter) return false;
-                if (ageFilter !== 'all' && !isAgeInRange(c.age, ageFilter)) return false;
-                if (progressFilter !== 'all') {
-                    const screeningAwalValue = c.screeningAwal || '';
-                    if (progressFilter === 'BELUM') {
-                        if (screeningAwalValue !== '') return false;
-                    } else if (screeningAwalValue !== progressFilter) {
-                        return false;
-                    }
-                }
+            filteredScreeningList = (Array.isArray(globalCandidates) ? globalCandidates : []).filter(candidate => {
+                // Screening tetap hanya mengambil kandidat RAW.
+                if (normalizeText(candidate?.status) !== 'raw') return false;
+
+                if (posFilter !== 'all' && normalizeText(candidate?.position) !== normalizeText(posFilter)) return false;
+                if (cityFilter !== 'all' && normalizeText(candidate?.city) !== normalizeText(cityFilter)) return false;
+
+                const gender = normalizeGender(getCandidateField(candidate, ['gender','Gender','GENDER','jenisKelamin','Jenis Kelamin']));
+                if (genderFilter !== 'all' && normalizeText(gender) !== normalizeText(genderFilter)) return false;
+
+                const education = normalizeEducation(getCandidateField(candidate, ['lastEducation','education','Education','pendidikan','Pendidikan','pendidikanTerakhir','Pendidikan Terakhir']));
+                if (eduFilter !== 'all' && normalizeText(education) !== normalizeText(eduFilter)) return false;
+
+                if (!ageMatches(parseCandidateAge(candidate), ageFilter)) return false;
+
+                if (progressFilter !== 'all' && normalizeText(getCandidateProgress(candidate)) !== normalizeText(progressFilter)) return false;
+
                 return true;
             });
 
-            currentScreeningIndex = 0;
-            renderScreeningCard(filteredScreeningList);
+            const queueCount = document.getElementById('queue-count');
+            if (queueCount) queueCount.innerText = filteredScreeningList.length;
 
-            // Isi badge "Antrean Saring" begitu filter dijalankan, bukan hanya setelah aksi kartu pertama.
-            const queueCountEl = document.getElementById('queue-count');
-            if (queueCountEl) queueCountEl.innerText = filteredScreeningList.length;
+            currentScreeningIndex = 0;
+
+            if (typeof renderScreeningCard === 'function') {
+                renderScreeningCard(filteredScreeningList);
+            } else {
+                console.warn('renderScreeningCard() belum tersedia dari screening.js');
+            }
 
             if (loadingEl) loadingEl.style.display = 'none';
         }
@@ -1473,7 +2072,7 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
         }
 
         function refreshScreeningQueue() {
-            renderScreeningCard(filteredScreeningList);
+            initScreeningQueue();
         }
 
         function refreshPipelineView() {
@@ -1493,20 +2092,40 @@ body.theme-night .text-red-500{color:#ff5d83!important;text-shadow:0 0 10px rgba
 
         // Fungsi Load Data Utama dari Google Sheet via API
         async function loadAllData() {
-            globalCandidates = await fetchCandidatesFromSheet();
-            
-            // Refresh view yang sedang aktif
-            const activeTab = document.querySelector('main > section:not(.hidden)');
-            if (activeTab) {
-                if (activeTab.id === 'view-dashboard') renderDashboardMetrics(globalCandidates);
-                if (activeTab.id === 'view-screening') initScreeningQueue();
-                if (activeTab.id === 'view-pipeline') renderKanbanBoard(globalCandidates);
-                if (activeTab.id === 'view-database') refreshDatabaseView();
+            try {
+                const data = await fetchCandidatesFromSheet();
+                globalCandidates = Array.isArray(data) ? data : [];
+
+                syncProgressSlicerOptions();
+
+                const activeTab = document.querySelector('main > section:not(.hidden)');
+                if (activeTab) {
+                    if (activeTab.id === 'view-dashboard' && typeof renderDashboardMetrics === 'function') {
+                        renderDashboardMetrics(globalCandidates);
+                    }
+                    if (activeTab.id === 'view-screening') {
+                        initScreeningQueue();
+                    }
+                    if (activeTab.id === 'view-pipeline' && typeof renderKanbanBoard === 'function') {
+                        renderKanbanBoard(globalCandidates);
+                    }
+                    if (activeTab.id === 'view-database' && typeof refreshDatabaseView === 'function') {
+                        refreshDatabaseView();
+                    }
+                }
+            } catch (error) {
+                console.error('Gagal memuat data kandidat:', error);
+                globalCandidates = [];
+                syncProgressSlicerOptions();
+                initScreeningQueue();
+                showToast('Gagal memuat data dari Google Sheet.', 'error');
             }
         }
 
         // Global Keyboard Shortcuts untuk Screening (← Reject, → Shortlist, Space/R Skip)
         document.addEventListener('keydown', (e) => {
+            const tag = (e.target?.tagName || '').toLowerCase();
+            if (['input','select','textarea','button'].includes(tag)) return;
             const screeningView = document.getElementById('view-screening');
             if (!screeningView || screeningView.classList.contains('hidden')) return;
 
