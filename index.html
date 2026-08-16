@@ -2629,3 +2629,233 @@ body.theme-day #active-card .text-blue-600{color:#a94f35!important}
     </script>
 </body>
 </html>
+
+<style id="night-contrast-v4">
+/* ============================================================
+   NIGHT CONTRAST V4
+   Purpose: preserve data proportions and guarantee readable
+   typography/status badges without changing application logic.
+   ============================================================ */
+
+body.theme-night {
+  --night-bg: #07131f;
+  --night-surface: #0b1b2a;
+  --night-surface-2: #0f2233;
+  --night-track: #153047;
+  --night-text: #e8f5f8;
+  --night-text-2: #b7d0d7;
+  --night-muted: #7f9da7;
+  --night-border: #244557;
+}
+
+/* ---------- Dashboard: keep the EMPTY TRACK dark ---------- */
+body.theme-night #dashboard-position-bars > div {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(111, 164, 181, .12) !important;
+}
+
+body.theme-night #dashboard-position-bars > div > div:last-child,
+body.theme-night #dashboard-position-bars .bar-track,
+body.theme-night #dashboard-position-bars [class*="w-full"] {
+  background: var(--night-track) !important;
+  box-shadow: none !important;
+}
+
+/* IMPORTANT: only elements with an actual inline width are the data fills.
+   Do NOT color the full-width track as an accent. */
+body.theme-night #dashboard-position-bars > div [style*="width"] {
+  background: #55cfe5 !important;
+  box-shadow: 0 0 5px rgba(85,207,229,.20) !important;
+  opacity: 1 !important;
+}
+
+body.theme-night #dashboard-position-bars > div:nth-child(1) [style*="width"] {
+  background: #ff6f8f !important;
+  box-shadow: 0 0 5px rgba(255,111,143,.20) !important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(2) [style*="width"] {
+  background: #ffb45c !important;
+  box-shadow: 0 0 5px rgba(255,180,92,.20) !important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(3) [style*="width"] {
+  background: #b58cff !important;
+  box-shadow: 0 0 5px rgba(181,140,255,.20) !important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(4) [style*="width"] {
+  background: #55cfe5 !important;
+  box-shadow: 0 0 5px rgba(85,207,229,.20) !important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(5) [style*="width"] {
+  background: #58d5aa !important;
+  box-shadow: 0 0 5px rgba(88,213,170,.20) !important;
+}
+body.theme-night #dashboard-position-bars > div:nth-child(n+6) [style*="width"] {
+  background: #4a87b2 !important;
+  box-shadow: none !important;
+}
+
+/* Fallback: if dashboard.js uses a class width instead of inline style,
+   retain the original proportional width and color only the likely fill.
+   These rules intentionally avoid blanket [class*=bg-] selectors. */
+body.theme-night #dashboard-position-bars [class*="w-"] {
+  transition: background .2s ease, box-shadow .2s ease;
+}
+
+/* ---------- Dashboard typography ---------- */
+body.theme-night #dashboard-position-bars,
+body.theme-night #dashboard-position-bars * {
+  color: var(--night-text-2) !important;
+  text-shadow: none !important;
+}
+body.theme-night #dashboard-position-bars .font-bold,
+body.theme-night #dashboard-position-bars .font-semibold {
+  color: var(--night-text) !important;
+}
+
+/* ---------- Database table ---------- */
+body.theme-night #view-database .bg-white.rounded-2xl,
+body.theme-night #view-database .bg-white.rounded-2xl > div {
+  background: var(--night-surface) !important;
+  border-color: var(--night-border) !important;
+}
+body.theme-night #view-database table {
+  color: var(--night-text-2) !important;
+}
+body.theme-night #view-database thead tr {
+  background: #102536 !important;
+  color: #bcd5dc !important;
+}
+body.theme-night #view-database thead th {
+  color: #c7dde3 !important;
+}
+body.theme-night #view-database tbody tr {
+  background: #0b1b2a !important;
+  border-color: rgba(111,164,181,.12) !important;
+}
+body.theme-night #view-database tbody tr:nth-child(even) {
+  background: #0d1f2f !important;
+}
+body.theme-night #view-database tbody tr:hover {
+  background: #122b3e !important;
+}
+body.theme-night #view-database tbody td {
+  color: #c2d8de !important;
+}
+body.theme-night #view-database tbody td:first-child {
+  color: #f0f8fa !important;
+  font-weight: 600;
+}
+
+/* Status column: never allow white text on bright status fills. */
+body.theme-night #database-table-body td:nth-child(4) span,
+body.theme-night #database-table-body td:nth-child(4) button,
+body.theme-night #database-table-body td:nth-child(4) .badge,
+body.theme-night #database-table-body td:nth-child(4) [class*="rounded"] {
+  text-shadow: none !important;
+  font-weight: 700 !important;
+  border: 1px solid transparent !important;
+}
+
+/* Safe neutral fallback before JS classifies the status. */
+body.theme-night #database-table-body td:nth-child(4) span,
+body.theme-night #database-table-body td:nth-child(4) button,
+body.theme-night #database-table-body td:nth-child(4) .badge {
+  background: #1a3344 !important;
+  color: #d8edf2 !important;
+  border-color: #315468 !important;
+}
+
+/* Search / toolbar contrast */
+body.theme-night #view-database input,
+body.theme-night #view-database select {
+  background: #0e2333 !important;
+  color: #e4f3f6 !important;
+  border-color: #2a4b5c !important;
+}
+body.theme-night #view-database input::placeholder {
+  color: #6f8d98 !important;
+}
+body.theme-night #view-database input:focus,
+body.theme-night #view-database select:focus {
+  border-color: #55cfe5 !important;
+  box-shadow: 0 0 0 2px rgba(85,207,229,.10) !important;
+}
+
+/* ---------- General Night readability ---------- */
+body.theme-night .text-white {
+  color: #edf8fa !important;
+}
+body.theme-night .bg-white .text-white {
+  color: #0b1b2a !important;
+}
+body.theme-night button.bg-white .text-white,
+body.theme-night a.bg-white .text-white {
+  color: #0b1b2a !important;
+}
+
+/* Do not glow ordinary typography. */
+body.theme-night h1,
+body.theme-night h2,
+body.theme-night h3,
+body.theme-night h4,
+body.theme-night p,
+body.theme-night span,
+body.theme-night label,
+body.theme-night td,
+body.theme-night th {
+  text-shadow: none !important;
+}
+
+/* Keep accent icons readable without lighting up the entire component. */
+body.theme-night .text-emerald-600,
+body.theme-night .text-emerald-500 { color: #58d5aa !important; }
+body.theme-night .text-amber-600,
+body.theme-night .text-amber-500 { color: #ffb45c !important; }
+body.theme-night .text-purple-600 { color: #b58cff !important; }
+body.theme-night .text-red-600,
+body.theme-night .text-red-500 { color: #ff6f8f !important; }
+</style>
+
+<script id="night-status-contrast-v4">
+(function () {
+  const STATUS_STYLES = [
+    { keys: ['shortlist', 'shortlisted'], bg: '#24463c', color: '#bff7df', border: '#397763' },
+    { keys: ['rejected', 'reject'], bg: '#482936', color: '#ffd0dc', border: '#7a4054' },
+    { keys: ['interview', 'interviewed'], bg: '#352d4c', color: '#dbcaff', border: '#5a4c7f' },
+    { keys: ['hired', 'diterima', 'accepted'], bg: '#214238', color: '#bff7df', border: '#3b7963' },
+    { keys: ['raw', 'baru'], bg: '#1b3547', color: '#c9edf5', border: '#315a6f' },
+    { keys: ['skip', 'skipped'], bg: '#443822', color: '#ffe3a3', border: '#6e5b31' },
+    { keys: ['pending', 'process', 'proses'], bg: '#3b3321', color: '#ffe0a0', border: '#67572e' }
+  ];
+
+  function styleDatabaseStatuses() {
+    if (!document.body.classList.contains('theme-night')) return;
+    document.querySelectorAll('#database-table-body td:nth-child(4) span, #database-table-body td:nth-child(4) button, #database-table-body td:nth-child(4) .badge').forEach(el => {
+      const text = (el.textContent || '').trim().toLowerCase();
+      const match = STATUS_STYLES.find(s => s.keys.some(k => text.includes(k)));
+      if (!match) return;
+      el.style.setProperty('background', match.bg, 'important');
+      el.style.setProperty('color', match.color, 'important');
+      el.style.setProperty('border-color', match.border, 'important');
+      el.style.setProperty('text-shadow', 'none', 'important');
+    });
+  }
+
+  function installObserver() {
+    const tbody = document.getElementById('database-table-body');
+    if (!tbody || tbody.__nightContrastObserver) return;
+    const observer = new MutationObserver(styleDatabaseStatuses);
+    observer.observe(tbody, { childList: true, subtree: true, characterData: true });
+    tbody.__nightContrastObserver = observer;
+  }
+
+  function run() {
+    installObserver();
+    styleDatabaseStatuses();
+  }
+
+  document.addEventListener('DOMContentLoaded', run);
+  window.addEventListener('load', run);
+  setInterval(run, 800);
+})();
+</script>
