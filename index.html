@@ -2103,16 +2103,19 @@
                                 <option value="Store boy">Store boy</option>
                                 <option value="Supervisor">Supervisor</option>
                             </select>
-                        </div>
+                        <!-- Slicer Domisili (Multi-Select) -->
                         <div class="flex-1 min-w-[200px]">
-                            <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Domisili</label>
-                            <select id="filter-city" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
-                                <option value="all">Semua Domisili (Solo Raya)</option>
-                                <option value="Surakarta">Surakarta</option>
+                            <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
+                                Domisili <span class="text-[9px] normal-case font-normal text-blue-500">(Tahan Ctrl/Cmd utk pilih > 1)</span>
+                            </label>
+                            <select id="filter-city" multiple size="7" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                                <option value="all" selected>Semua Domisili</option>
+                                <option value="Surakarta">Surakarta / Solo</option>
                                 <option value="Boyolali">Boyolali</option>
                                 <option value="Sukoharjo">Sukoharjo</option>
                                 <option value="Karanganyar">Karanganyar</option>
                                 <option value="Sragen">Sragen</option>
+                                <option value="etc">Lainnya / Tidak Jelas (ETC)</option>
                             </select>
                         </div>
                         <div class="flex-1 min-w-[160px]">
@@ -2460,7 +2463,9 @@
         // Inisialisasi Slicer & Antrean Screening
         function initScreeningQueue() {
             const posFilter = document.getElementById('filter-pos').value;
-            const cityFilter = document.getElementById('filter-city').value;
+            // Ambil semua value kota yang dipilih (karena multi-select)
+            const citySelect = document.getElementById('filter-city');
+            const selectedCities = citySelect ? Array.from(citySelect.selectedOptions).map(opt => opt.value) : ['all'];
             const genderEl = document.getElementById('filter-gender');
             const eduEl = document.getElementById('filter-edu');
             const ageEl = document.getElementById('filter-age');
@@ -2485,8 +2490,44 @@
                     if (!posValue.includes(posFilter.toLowerCase())) return false;
                 }
                 
-                // --- 2. FILTER DOMISILI ---
-                if (cityFilter !== 'all' && c.city !== cityFilter) return false;
+                // --- 2. FILTER DOMISILI (Multi-Select & Kategori ETC) ---
+                // Hanya memfilter jika user TIDAK memilih "all" dan ada yang diklik
+                if (!selectedCities.includes('all') && selectedCities.length > 0) {
+                    const cityValue = (c.city || '').toLowerCase();
+                    
+                    // Daftar kata kunci kota yang dikenali sistem (Bisa Anda tambah jika perlu)
+                    const knownCities = ['surakarta', 'solo', 'boyolali', 'sukoharjo', 'karanganyar', 'sragen', 'klaten', 'wonogiri'];
+                    
+                    // Deteksi: Apakah alamat pelamar mengandung SATU SAJA dari kota yang dikenali?
+                    const isKnownAtAll = knownCities.some(kc => cityValue.includes(kc));
+
+                    let isMatched = false;
+
+                    // Cek setiap kota yang sedang dipilih oleh Anda di Slicer
+                    for (let sel of selectedCities) {
+                        if (sel === 'etc') {
+                            // Jika Anda memilih 'etc', data ini Lolos jika dia TIDAK dikenali (Tidak jelas)
+                            if (!isKnownAtAll) {
+                                isMatched = true;
+                                break;
+                            }
+                        } else {
+                            // Pengecualian khusus untuk Surakarta (karena sering ditulis Solo)
+                            if (sel === 'Surakarta' && (cityValue.includes('surakarta') || cityValue.includes('solo'))) {
+                                isMatched = true;
+                                break;
+                            } 
+                            // Untuk kota lain, Lolos jika teks alamat mengandung nama kota pilihan
+                            else if (cityValue.includes(sel.toLowerCase())) {
+                                isMatched = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Jika kandidat ini tidak masuk kriteria kota manapun yang sedang dipilih, buang.
+                    if (!isMatched) return false;
+                }
                 
                 // --- 3. FILTER GENDER (Pria / Wanita) ---
                 if (genderFilter !== 'all' && c.gender !== genderFilter) return false;
