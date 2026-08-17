@@ -1,7 +1,7 @@
 // ============================================================================
 // FILE: js/screening.js
 // DESKRIPSI: Menangani logika rendering UI kartu kandidat dan aksi screening 
-// (Desain Kartu Premium V1 digabungkan dengan Fitur Data V2)
+// (Desain Kartu Premium dengan Fix Animasi & Optimistic UI API Background)
 // ============================================================================
 
 /**
@@ -11,7 +11,7 @@ function renderScreeningCard(list) {
     const container = document.getElementById('card-container');
     const noMoreEl = document.getElementById('no-more-cards');
     
-    // Sembunyikan elemen bawaan index.html jika ada (kita pakai desain internal js)
+    // Sembunyikan elemen bawaan index.html jika ada
     if(noMoreEl) noMoreEl.style.display = 'none';
     
     if (!container) return;
@@ -75,7 +75,7 @@ function renderScreeningCard(list) {
 
     // TAMPILAN HTML KARTU 
     container.innerHTML = `
-        <div id="active-card" class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden w-full transition-all duration-300 transform scale-100 opacity-100 relative z-10">
+        <div id="active-card" class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden w-full relative z-10" style="transition: transform 0.3s ease-out, opacity 0.3s ease-out; transform: translate(0, 0); opacity: 1;">
             ${duplicateWarning}
             
             <div class="p-6 border-b border-slate-100 flex justify-between items-start">
@@ -167,45 +167,34 @@ function renderScreeningCard(list) {
 function handleScreeningAction(candidateId, action) {
     const card = document.getElementById('active-card');
     
-    // 1. Eksekusi Animasi Keluar (Menggunakan kelas Tailwind seperti desain lama)
+    // 1. Eksekusi Animasi Keluar (Style manual memastikan tidak gagal load CDN Tailwind)
     if (card) {
         if (action === 'SHORTLIST') {
-            card.classList.add('translate-x-full', 'opacity-0');
+            card.style.transform = 'translateX(120%) rotate(5deg)';
         } else if (action === 'REJECTED') {
-            card.classList.add('-translate-x-full', 'opacity-0');
+            card.style.transform = 'translateX(-120%) rotate(-5deg)';
         } else if (action === 'SKIP') {
-            card.classList.add('-translate-y-4', 'opacity-0', 'scale-95');
+            card.style.transform = 'translateY(50%) scale(0.9)';
         }
+        card.style.opacity = '0';
     }
 
-    // 2. Beri jeda 300ms agar animasi selesai
-    setTimeout(async () => {
+    // 2. Beri jeda 300ms agar animasi UI selesai
+    setTimeout(() => {
         
-        // Panggil API Google Sheet (Jika bukan SKIP)
+        // Optimistic UI: Segera ubah status lokal agar kartu selanjutnya langsung terender
         if (action !== 'SKIP') {
-            if(typeof showToast === 'function') showToast(`Memproses ${action}...`, 'info');
-            
-            // Tunggu response update dari sheet
-            const success = await updateCandidateStatus(candidateId, action);
-            
-            if (success) {
-                if(typeof showToast === 'function') showToast(`Kandidat berhasil di-${action}`, 'success');
-                // Perbarui status langsung pada Array Global 
-                const candidateIndex = globalCandidates.findIndex(c => c.id === candidateId);
-                if (candidateIndex !== -1) {
-                    globalCandidates[candidateIndex].status = action;
-                }
-            } else {
-                if(typeof showToast === 'function') showToast('Gagal memproses data ke Sheet!', 'error');
+            const candidateIndex = globalCandidates.findIndex(c => c.id === candidateId);
+            if (candidateIndex !== -1) {
+                globalCandidates[candidateIndex].status = action;
             }
         } else {
             // Jika SKIP, cukup naikkan antrean
             window.currentScreeningIndex++;
         }
 
-        // 3. Render ulang dengan sisa data yang baru
+        // Render ulang kartu berikutnya segera setelah animasi selesai
         if (typeof filteredScreeningList !== 'undefined') {
-            // Hitung sisa dan update UI Queue label
             const rawList = filteredScreeningList.filter(c => c.status === 'RAW');
             const queueCount = document.getElementById('queue-count');
             
@@ -213,8 +202,27 @@ function handleScreeningAction(candidateId, action) {
                 const remaining = rawList.length - window.currentScreeningIndex;
                 queueCount.innerText = remaining > 0 ? remaining : 0;
             }
-
             renderScreeningCard(filteredScreeningList);
         }
+
     }, 300);
+
+    // 3. Proses Push ke Google Sheet (Berjalan di Background / Latar Belakang)
+    if (action !== 'SKIP') {
+        if(typeof showToast === 'function') showToast(`Memproses ${action}...`, 'info');
+        
+        updateCandidateStatus(candidateId, action)
+            .then(success => {
+                if (success) {
+                    if(typeof showToast === 'function') showToast(`Kandidat berhasil di-${action}`, 'success');
+                } else {
+                    // Jika gagal Push, rollback datanya
+                    if(typeof showToast === 'function') showToast('Gagal memproses data ke Sheet!', 'error');
+                }
+            })
+            .catch(error => {
+                console.error("Gagal update API:", error);
+                if(typeof showToast === 'function') showToast('Terjadi kesalahan sistem!', 'error');
+            });
+    }
 }
