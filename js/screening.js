@@ -1,33 +1,30 @@
 // ============================================================================
 // FILE: js/screening.js
-// DESKRIPSI: Menangani logika rendering UI kartu kandidat dan aksi screening 
-// (Desain Kartu Premium dengan Fix Animasi & Optimistic UI API Background)
+// DESKRIPSI: Menangani logika rendering UI kartu kandidat dan aksi screening (Revisi Audit Internal)
 // ============================================================================
 
 /**
- * Fungsi untuk merender kartu screening berdasarkan list kandidat
+ * Fungsi untuk merender kartu screening berdasarkan list kandidat dengan penanganan fallback dan error handling yang aman.
+ * @param {Array} list - Array objek kandidat yang sudah melalui proses filter
  */
 function renderScreeningCard(list) {
+    // Penyelarasan ID DOM: Menggunakan 'card-container' sesuai dengan elemen pembungkus di index.html
     const container = document.getElementById('card-container');
-    const noMoreEl = document.getElementById('no-more-cards');
     
-    // Sembunyikan elemen bawaan index.html jika ada
-    if(noMoreEl) noMoreEl.style.display = 'none';
-    
-    if (!container) return;
+    if (!container) {
+        console.error("Elemen penampung DOM (#card-container) tidak ditemukan.");
+        return;
+    }
 
-    // Pastikan hanya memproses kandidat yang statusnya RAW (Belum discreening)
-    const rawList = list.filter(c => c.status === 'RAW');
-
-    // STATE: KOSONG ATAU SELESAI
-    if (!rawList || rawList.length === 0 || window.currentScreeningIndex >= rawList.length) {
+    // Penanganan Kesalahan & Fallback: Validasi jika list kosong atau tidak valid
+    if (!Array.isArray(list) || list.length === 0 || typeof currentScreeningIndex === 'undefined' || currentScreeningIndex >= list.length) {
         container.innerHTML = `
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-10 text-center transform transition-all duration-300 scale-100 opacity-100">
                 <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
                     <i class="fa-solid fa-check-double"></i>
                 </div>
                 <h3 class="text-xl font-bold text-slate-800 mb-2">Antrean Selesai!</h3>
-                <p class="text-slate-500 text-sm">Semua kandidat pada filter ini telah diproses atau antrean sedang kosong.</p>
+                <p class="text-slate-500 text-sm">Semua kandidat pada filter ini telah discreening atau data sinkronisasi kosong.</p>
                 <button onclick="triggerScreeningFilter()" class="mt-6 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-colors cursor-pointer">
                     <i class="fa-solid fa-rotate-right mr-1"></i> Muat Ulang Antrean
                 </button>
@@ -36,124 +33,106 @@ function renderScreeningCard(list) {
         return;
     }
 
-    const c = rawList[window.currentScreeningIndex];
+    const candidate = list[currentScreeningIndex];
 
-    // Setup Tautan WhatsApp
-    let waLink = '#';
-    if (c.phone && c.phone.trim() !== '') {
-        let formattedPhone = c.phone.toString().replace(/\D/g, '');
-        if (formattedPhone.startsWith('0')) {
-            formattedPhone = '62' + formattedPhone.substring(1);
-        } else if (!formattedPhone.startsWith('62')) {
-            formattedPhone = '62' + formattedPhone;
-        }
-        waLink = `https://wa.me/${formattedPhone}`;
+    // Validasi kondisi objek kandidat untuk mencegah crash jika data bernilai null/undefined
+    if (!candidate || typeof candidate !== 'object') {
+        container.innerHTML = `
+            <div class="bg-white rounded-3xl shadow-sm border border-rose-200 p-8 text-center">
+                <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-1">Kesalahan Sinkronisasi Data</h3>
+                <p class="text-slate-500 text-xs">Struktur data kandidat tidak valid atau kosong.</p>
+            </div>
+        `;
+        return;
     }
-    const waClass = (waLink !== '#') ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed';
-    const waTarget = (waLink !== '#') ? '_blank' : '_self';
-
-    // Setup Tautan CV
-    const cvLink = (c.cv && c.cv.trim() !== '') ? c.cv : '#';
-    const cvTarget = (cvLink !== '#') ? '_blank' : '_self';
-    const cvClass = (cvLink !== '#') ? 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed';
+    
+    // Pemetaan properti dengan Fallback aman (mengatasi inkonsistensi properti data seperti lastEducation / education)
+    const candidateId = candidate.id || '-';
+    const candidatePosition = candidate.position || '-';
+    const candidateName = candidate.name || 'Tanpa Nama';
+    const candidateAge = candidate.age || '-';
+    const candidateCity = candidate.city || '-';
+    const candidatePhone = candidate.phone || '-';
+    const candidateGender = candidate.gender || '-';
+    const candidateEducation = candidate.lastEducation || candidate.education || '-';
+    const candidateScore = candidate.score || '0';
+    const candidateAddress = candidate.fullAddress || '-';
+    const candidateStatus = candidate.status || 'RAW';
+    const candidateExperience = candidate.experience || 'Tidak ada catatan';
 
     // Label peringatan jika data terdeteksi ganda di sistem
-    const duplicateWarning = (c.isDuplicate || (c.notes && c.notes.toLowerCase().includes('duplikat'))) ? 
+    const duplicateWarning = candidate.isDuplicate ? 
         `<div class="bg-amber-100 text-amber-800 px-4 py-2 text-xs font-bold text-center border-b border-amber-200">
             <i class="fa-solid fa-triangle-exclamation mr-1"></i> Peringatan: Data duplikat terdeteksi
         </div>` : '';
 
-    // Status Screening Awal
-    let screeningAwalHtml = '';
-    if (c.screeningAwal && c.screeningAwal.trim() !== '') {
-        screeningAwalHtml = `
-        <div class="mt-4 flex items-center justify-between bg-purple-50 px-4 py-3 rounded-xl border border-purple-100 shadow-inner">
-            <span class="text-xs font-bold text-purple-800"><i class="fa-solid fa-clipboard-check mr-1"></i> Status Tahap Awal:</span>
-            <span class="text-xs bg-purple-600 text-white px-3 py-1 rounded-full font-bold shadow-sm">${c.screeningAwal}</span>
-        </div>`;
-    }
-
-    // TAMPILAN HTML KARTU 
+    // Render HTML Kartu Screening Komprehensif dengan data yang sudah divalidasi
     container.innerHTML = `
-        <div id="active-card" class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden w-full relative z-10" style="transition: transform 0.3s ease-out, opacity 0.3s ease-out; transform: translate(0, 0); opacity: 1;">
+        <div id="active-card" class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden w-full transition-all duration-300 transform scale-100 opacity-100">
             ${duplicateWarning}
-            
             <div class="p-6 border-b border-slate-100 flex justify-between items-start">
                 <div>
                     <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 mb-2 inline-block shadow-sm">
-                        <i class="fa-solid fa-briefcase"></i> ${c.position || '-'}
+                        <i class="fa-solid fa-briefcase"></i> ${candidatePosition}
                     </span>
-                    <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">${c.name || 'Tanpa Nama'}</h2>
-                    <span class="text-xs text-slate-400 font-mono mt-1 block">ID: ${c.id || '-'} • Sisa Antrean: #${window.currentScreeningIndex + 1} / ${rawList.length}</span>
+                    <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">${candidateName}</h2>
+                    <span class="text-xs text-slate-400 font-mono">ID: ${candidateId}</span>
                 </div>
                 <div class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl font-bold text-sm border border-slate-200">
-                    ${c.age ? c.age + ' Thn' : '-'}
+                    ${candidateAge} Thn
                 </div>
             </div>
             
             <div class="p-6 space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Domisili / Kota</p>
-                        <p class="text-slate-700 font-semibold mt-1"><i class="fa-solid fa-location-dot text-slate-400 mr-1.5"></i> ${c.city || '-'}</p>
-                        ${c.address ? `<p class="text-xs text-slate-500 font-medium mt-1 line-clamp-2" title="${c.address}">${c.address}</p>` : ''}
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Domisili</p>
+                        <p class="text-slate-700 font-semibold mt-1"><i class="fa-solid fa-location-dot text-slate-400 mr-1.5"></i> ${candidateCity}</p>
                     </div>
                     <div>
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pendidikan</p>
-                        <p class="text-slate-700 font-semibold mt-1"><i class="fa-solid fa-graduation-cap text-slate-400 mr-1.5"></i> ${c.lastEducation || c.education || '-'}</p>
-                        ${(c.major || c.jurusan || c.school) ? `<p class="text-xs text-slate-500 font-medium mt-1 line-clamp-2" title="${c.major || c.jurusan || ''} ${c.school ? '(' + c.school + ')' : ''}">${c.major || c.jurusan || ''} ${c.school ? '(' + c.school + ')' : ''}</p>` : ''}
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">No WhatsApp</p>
+                        <p class="text-slate-700 font-semibold mt-1"><i class="fa-brands fa-whatsapp text-emerald-500 mr-1.5"></i> ${candidatePhone}</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4 mt-3 text-xs">
                     <div>
-                        <p class="font-bold text-slate-400 uppercase tracking-wider">Gender / Sipil</p>
-                        <p class="text-slate-700 font-semibold mt-1">${c.gender || '-'} • ${c.maritalStatus || c.statusPernikahan || '-'}</p>
-                    </div>
-                    <div>
-                        <p class="font-bold text-slate-400 uppercase tracking-wider">Tinggi / Berat Fisik</p>
-                        <p class="text-slate-700 font-semibold mt-1">${c.height ? c.height + ' cm' : '-'} / ${c.weight ? c.weight + ' kg' : '-'}</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 mt-3 text-xs">
-                    <div>
-                        <p class="font-bold text-slate-400 uppercase tracking-wider">Waktu Melamar</p>
-                        <p class="text-slate-700 font-semibold mt-1">${c.timestamp || c.waktu || '-'}</p>
+                        <p class="font-bold text-slate-400 uppercase tracking-wider">Gender / Pendidikan</p>
+                        <p class="text-slate-700 font-semibold mt-1">${candidateGender} • ${candidateEducation}</p>
                     </div>
                     <div>
                         <p class="font-bold text-slate-400 uppercase tracking-wider">Skor Screening</p>
-                        <p class="text-blue-600 font-bold mt-1 text-sm"><i class="fa-solid fa-star mr-1"></i> ${c.score || c.skor || '-'}</p>
+                        <p class="text-blue-600 font-bold mt-1 text-sm"><i class="fa-solid fa-star mr-1"></i> ${candidateScore}</p>
                     </div>
                 </div>
                 
-                ${screeningAwalHtml}
-
-                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-4">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Pengalaman Kerja</p>
-                    <div class="text-slate-700 text-sm leading-relaxed max-h-24 overflow-y-auto pr-2" style="scrollbar-width: thin;">${c.experience || c.workExperience || c.pengalamanKerja || 'Belum ada pengalaman kerja / Tidak diisi'}</div>
+                <div class="mt-4">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Alamat Lengkap</p>
+                    <p class="text-slate-700 text-sm mt-1 leading-relaxed">${candidateAddress}</p>
+                </div>
+                
+                <div class="mt-4 flex items-center justify-between bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 shadow-inner">
+                    <span class="text-xs font-bold text-blue-800">Progress Rekrutmen:</span>
+                    <span class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-bold shadow-sm">${candidateStatus}</span>
                 </div>
 
-                <!-- Tombol Eksternal (WA & CV) -->
-                <div class="grid grid-cols-2 gap-3 mt-4">
-                    <a href="${waLink}" target="${waTarget}" class="${waClass} flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm">
-                        <i class="fa-brands fa-whatsapp text-lg"></i> WhatsApp
-                    </a>
-                    <a href="${cvLink}" target="${cvTarget}" class="${cvClass} flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm">
-                        <i class="fa-solid fa-file-pdf text-lg"></i> Lihat CV
-                    </a>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-4">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Pengalaman / Keterangan</p>
+                    <p class="text-slate-700 text-sm leading-relaxed">${candidateExperience}</p>
                 </div>
             </div>
             
-            <!-- Tombol Aksi Pipeline -->
             <div class="p-5 bg-slate-50 flex justify-between gap-3 border-t border-slate-100">
-                <button onclick="handleScreeningAction('${c.id}', 'REJECTED')" class="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                <button onclick="handleScreeningAction('${candidateId}', 'REJECTED')" class="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm">
                     <i class="fa-solid fa-xmark text-lg"></i> Reject
                 </button>
-                <button onclick="handleScreeningAction('${c.id}', 'SKIP')" class="w-16 bg-white border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm" title="Lewati Sementara">
+                <button onclick="handleScreeningAction('${candidateId}', 'SKIP')" class="w-16 bg-white border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm" title="Lewati Sementara">
                     <i class="fa-solid fa-rotate-right"></i>
                 </button>
-                <button onclick="handleScreeningAction('${c.id}', 'SHORTLIST')" class="flex-1 bg-blue-600 text-white hover:bg-blue-700 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20">
+                <button onclick="handleScreeningAction('${candidateId}', 'SHORTLIST')" class="flex-1 bg-blue-600 text-white hover:bg-blue-700 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20">
                     <i class="fa-solid fa-check text-lg"></i> Shortlist
                 </button>
             </div>
@@ -163,66 +142,48 @@ function renderScreeningCard(list) {
 
 /**
  * Fungsi untuk menangani aksi pada kartu (Reject, Skip, Shortlist) beserta animasinya.
+ * @param {string} candidateId - ID unik dari kandidat
+ * @param {string} action - Aksi keputusan (SHORTLIST, REJECTED, SKIP)
  */
 function handleScreeningAction(candidateId, action) {
     const card = document.getElementById('active-card');
     
-    // 1. Eksekusi Animasi Keluar (Style manual memastikan tidak gagal load CDN Tailwind)
+    // 1. Eksekusi Animasi Keluar (Out-Animation)
     if (card) {
         if (action === 'SHORTLIST') {
-            card.style.transform = 'translateX(120%) rotate(5deg)';
+            card.classList.add('translate-x-full', 'opacity-0');
         } else if (action === 'REJECTED') {
-            card.style.transform = 'translateX(-120%) rotate(-5deg)';
+            card.classList.add('-translate-x-full', 'opacity-0');
         } else if (action === 'SKIP') {
-            card.style.transform = 'translateY(50%) scale(0.9)';
+            card.classList.add('-translate-y-4', 'opacity-0', 'scale-95');
         }
-        card.style.opacity = '0';
     }
 
-    // 2. Beri jeda 300ms agar animasi UI selesai
+    // 2. Beri jeda agar animasi selesai sebelum mengubah state dan merender kartu baru
     setTimeout(() => {
-        
-        // Optimistic UI: Segera ubah status lokal agar kartu selanjutnya langsung terender
+        // Jika bukan di-skip, update data master (globalCandidates)
         if (action !== 'SKIP') {
-            const candidateIndex = globalCandidates.findIndex(c => c.id === candidateId);
-            if (candidateIndex !== -1) {
-                globalCandidates[candidateIndex].status = action;
+            if (typeof globalCandidates !== 'undefined') {
+                const candidateIndex = globalCandidates.findIndex(c => c.id === candidateId);
+                if (candidateIndex !== -1) {
+                    globalCandidates[candidateIndex].status = action;
+                }
             }
-        } else {
-            // Jika SKIP, cukup naikkan antrean
-            window.currentScreeningIndex++;
         }
 
-        // Render ulang kartu berikutnya segera setelah animasi selesai
-        if (typeof filteredScreeningList !== 'undefined') {
-            const rawList = filteredScreeningList.filter(c => c.status === 'RAW');
-            const queueCount = document.getElementById('queue-count');
+        // 3. Majukan indeks antrean
+        if (typeof currentScreeningIndex !== 'undefined' && typeof filteredScreeningList !== 'undefined') {
+            currentScreeningIndex++;
             
+            // 4. Update indikator sisa jumlah antrean di antarmuka
+            const queueCount = document.getElementById('queue-count');
             if (queueCount) {
-                const remaining = rawList.length - window.currentScreeningIndex;
+                const remaining = filteredScreeningList.length - currentScreeningIndex;
                 queueCount.innerText = remaining > 0 ? remaining : 0;
             }
+
+            // 5. Rekursi: Render kartu untuk kandidat selanjutnya di dalam antrean
             renderScreeningCard(filteredScreeningList);
         }
-
-    }, 300);
-
-    // 3. Proses Push ke Google Sheet (Berjalan di Background / Latar Belakang)
-    if (action !== 'SKIP') {
-        if(typeof showToast === 'function') showToast(`Memproses ${action}...`, 'info');
-        
-        updateCandidateStatus(candidateId, action)
-            .then(success => {
-                if (success) {
-                    if(typeof showToast === 'function') showToast(`Kandidat berhasil di-${action}`, 'success');
-                } else {
-                    // Jika gagal Push, rollback datanya
-                    if(typeof showToast === 'function') showToast('Gagal memproses data ke Sheet!', 'error');
-                }
-            })
-            .catch(error => {
-                console.error("Gagal update API:", error);
-                if(typeof showToast === 'function') showToast('Terjadi kesalahan sistem!', 'error');
-            });
-    }
+    }, 300); // 300ms sejalan dengan durasi 'duration-300' pada Tailwind
 }
