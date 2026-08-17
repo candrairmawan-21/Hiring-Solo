@@ -1,56 +1,71 @@
-// ============================================================================
+// ==========================================
 // FILE: js/api.js
-// DESKRIPSI: Menangani komunikasi (GET & POST) antara Website dan Google Sheet
-// ============================================================================
+// KETERANGAN: Menangani seluruh komunikasi data (GET & POST) ke Google Sheet via Google Apps Script.
+// Developer/Vibe Coder: File ini bertugas mengambil data dari Sheet dan mengirim pembaruan status.
+// ==========================================
 
-// ⚠️ PENTING: Ganti tulisan di dalam tanda kutip ini dengan URL Web App Google Apps Script Anda yang asli (yang berakhiran /exec)
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQL9hKAT-SdL9B9pHc7uIti4rgVyeEI1Dv22N97z2NH3jb7JESDzbX1Ims3N3vpL8jQg/exec'; 
-
-/**
- * 1. Fungsi untuk mengambil data (GET) dari Google Sheet ke Website
- */
+// 1. FUNGSI: Mengambil semua data kandidat dari Google Sheet
 async function fetchCandidatesFromSheet() {
     try {
-        const response = await fetch(`${SCRIPT_URL}?action=get_data`);
+        // Mengirim permintaan GET ke URL Apps Script dengan parameter action=getData
+        const response = await fetch(`${CONFIG.API_URL}?action=getData`);
         const data = await response.json();
         
-        if (data && data.success) {
-            console.log(`Data kandidat berhasil dimuat: ${data.data.length}`);
-            return data.data;
-        } else {
-            console.error("Format data gagal dibaca dari server.");
-            return [];
-        }
+        console.log("Data kandidat berhasil dimuat:", data.length);
+        return data; // Mengembalikan array data kandidat
     } catch (error) {
-        console.error("Gagal memuat data dari Sheet:", error);
-        return [];
+        console.error("Gagal mengambil data dari Google Sheet:", error);
+        showToast("Gagal memuat data dari server.", "error");
+        return []; // Kembalikan array kosong jika gagal agar web tidak error
     }
 }
 
-/**
- * 2. Fungsi untuk mengirim (POST) hasil Reject/Shortlist kembali ke Google Sheet
- */
-async function updateCandidateStatus(id, newStatus) {
+// 2. FUNGSI: Mengirim pembaruan status kandidat ke Google Sheet
+async function updateCandidateDataInSheet(candidateId, updateData) {
     try {
-        // Menggunakan URLSearchParams agar lolos dari blokir CORS Google
-        const formData = new URLSearchParams();
-        formData.append('action', 'update_status'); 
-        formData.append('id', id);
-        formData.append('status', newStatus);
-
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            }
+        // PENTING — TEMUAN AUDIT: Google Apps Script Web App TIDAK mengirim header CORS
+        // (Access-Control-Allow-Origin) pada response POST — berbeda dari GET yang otomatis
+        // lolos CORS (lihat fetchCandidatesFromSheet di atas, yang bekerja normal). Ini
+        // keterbatasan platform GAS itu sendiri, BUKAN sesuatu yang bisa diperbaiki lewat
+        // kode di code.gs (ContentService tidak punya cara mengatur header CORS secara manual).
+        // doPost() di server TETAP berjalan & TETAP menyimpan data dengan benar — browser
+        // hanya memblokir JS di sisi client membaca response-nya (net::ERR_FAILED walau
+        // server sebenarnya membalas 200 OK).
+        //
+        // SOLUSI: kirim dengan mode "no-cors". Konsekuensinya, response menjadi "opaque" —
+        // status maupun isi body-nya TIDAK BISA dibaca sama sekali oleh JS (pembatasan
+        // keamanan browser, bukan bug). Karena itu kita TIDAK BISA lagi mengecek
+        // result.success dari response — keberhasilan di sini bersifat OPTIMISTIC: dianggap
+        // berhasil kalau fetch tidak melempar error jaringan (mis. benar-benar offline).
+        // Kegagalan backend yang sah (mis. candidateId tidak ditemukan di Sheet) TIDAK akan
+        // lagi terdeteksi dari sisi client — verifikasi manual di Sheet tetap disarankan
+        // sesekali. Ini trade-off yang tidak terhindarkan akibat batasan CORS GAS di atas.
+        await fetch(CONFIG.API_URL, {
+            method: "POST",
+            mode: "no-cors",
+            body: JSON.stringify({
+                action: "updateStatus",
+                candidateId: candidateId,
+                updates: updateData
+            })
         });
 
-        const result = await response.json();
-        return result.success; 
-        
+        return true; // Optimistic: fetch tidak melempar error = anggap terkirim
     } catch (error) {
-        console.error('Error saat push data ke Sheet:', error);
+        console.error("Gagal mengupdate data:", error);
+        showToast("Gagal menyinkronkan data ke Google Sheet.", "error");
         return false;
     }
+}
+
+// 3. FUNGSI BANTU: Normalisasi nomor WhatsApp (Merapikan format 0, 62, atau 8x)
+function normalizePhoneNumber(phone) {
+    if (!phone) return "";
+    let cleaned = phone.toString().replace(/\D/g, ''); // Hapus semua karakter selain angka
+    if (cleaned.startsWith('62')) {
+        cleaned = '0' + cleaned.slice(2);
+    } else if (cleaned.startsWith('8')) {
+        cleaned = '0' + cleaned;
+    }
+    return cleaned;
 }
