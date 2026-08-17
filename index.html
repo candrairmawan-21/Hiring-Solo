@@ -1318,6 +1318,22 @@
         padding-right:34px!important;
     }
 
+    /* Multi-select slicers: tetap compact dan mudah dibaca */
+    #screening-filter-panel select[multiple]{
+        min-height:92px!important;
+        padding:8px 10px!important;
+        background-image:none!important;
+    }
+    #screening-filter-panel select[multiple] option{
+        padding:6px 8px!important;
+        border-radius:6px;
+        margin:2px 0;
+    }
+    #screening-filter-panel select[multiple] option:checked{
+        font-weight:700;
+    }
+
+
     .screening-card-workspace{
         min-width:0!important;
         min-height:0!important;
@@ -2096,8 +2112,8 @@
                         <!-- Slicer Posisi -->
                         <div class="flex-1 min-w-[200px]">
                             <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Posisi</label>
-                            <select id="filter-pos" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
-                                <option value="all">Semua Posisi</option>
+                            <select id="filter-pos" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                                <option value="all" selected>Semua Posisi</option>
                                 <option value="Kasir">Kasir</option>
                                 <option value="Promotor/Pramuniaga">Promotor/Pramuniaga</option>
                                 <option value="Store boy">Store boy</option>
@@ -2106,8 +2122,8 @@
                         </div>
                         <div class="flex-1 min-w-[200px]">
                             <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Domisili</label>
-                            <select id="filter-city" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
-                                <option value="all">Semua Domisili (Solo Raya)</option>
+                            <select id="filter-city" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                                <option value="all" selected>Semua Domisili (Solo Raya)</option>
                                 <option value="Surakarta">Surakarta</option>
                                 <option value="Boyolali">Boyolali</option>
                                 <option value="Sukoharjo">Sukoharjo</option>
@@ -2117,8 +2133,8 @@
                         </div>
                         <div class="flex-1 min-w-[160px]">
                             <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Usia</label>
-                            <select id="filter-age" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
-                                <option value="all">Semua Usia</option>
+                            <select id="filter-age" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                                <option value="all" selected>Semua Usia</option>
                                 <option value="17-20">17 - 20 Tahun</option>
                                 <option value="21-25">21 - 25 Tahun</option>
                                 <option value="26-30">26 - 30 Tahun</option>
@@ -2130,8 +2146,8 @@
                         <!-- Slicer Gender (Pria / Wanita) -->
                         <div class="flex-1 min-w-[160px]">
                             <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Gender</label>
-                            <select id="filter-gender" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
-                                <option value="all">Semua Gender</option>
+                            <select id="filter-gender" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                                <option value="all" selected>Semua Gender</option>
                                 <option value="Pria">Pria</option>
                                 <option value="Wanita">Wanita</option>
                             </select>
@@ -2140,8 +2156,8 @@
                         <!-- Slicer Pendidikan -->
                         <div class="flex-1 min-w-[160px]">
                             <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Pendidikan</label>
-                            <select id="filter-edu" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
-                                <option value="all">Semua Pend. Terakhir</option>
+                            <select id="filter-edu" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                                <option value="all" selected>Semua Pend. Terakhir</option>
                                 <option value="SD">SD</option>
                                 <option value="SMP">SMP</option>
                                 <option value="SMA/SMK">SMA/SMK</option>
@@ -2153,11 +2169,12 @@
                         <!-- Slicer Progress -->
                         <div class="flex-1 min-w-[160px]">
                             <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Progress</label>
-                            <select id="filter-progress" onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
-                                <option value="all">Semua Progress</option>
+                            <select id="filter-progress" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                                <option value="all" selected>Semua Progress</option>
                                 <option value="BELUM">Belum Discreening</option>
                                 <option value="SHORTLIST">Shortlist</option>
                                 <option value="REJECT">Reject</option>
+                                <option value="SKIP">Skip</option>
                             </select>
                         </div>
                         
@@ -2407,6 +2424,19 @@
             if (tab === 'database') renderDatabaseTable(globalCandidates);
         }
 
+        // Helper: ambil semua nilai yang dipilih dari slicer multi-select.
+        // "all" berarti tidak membatasi filter tersebut.
+        function getMultiSelectValues(id) {
+            const el = document.getElementById(id);
+            if (!el) return ['all'];
+
+            const values = Array.from(el.selectedOptions)
+                .map(option => option.value)
+                .filter(Boolean);
+
+            return values.length ? values : ['all'];
+        }
+
         // Helper: cek apakah usia kandidat termasuk dalam rentang yang dipilih pada Slicer Usia
         function isAgeInRange(age, rangeValue) {
             const numAge = Number(age);
@@ -2423,72 +2453,104 @@
 
         // Inisialisasi Slicer & Antrean Screening
         function initScreeningQueue() {
-            const posFilter = document.getElementById('filter-pos').value;
-            const cityFilter = document.getElementById('filter-city').value;
-            const genderEl = document.getElementById('filter-gender');
-            const eduEl = document.getElementById('filter-edu');
-            const ageEl = document.getElementById('filter-age');
-            const progressEl = document.getElementById('filter-progress');
-            
-            const genderFilter = genderEl ? genderEl.value : 'all';
-            const eduFilter = eduEl ? eduEl.value : 'all';
-            const ageFilter = ageEl ? ageEl.value : 'all';
-            const progressFilter = progressEl ? progressEl.value : 'all';
+            const posFilters = getMultiSelectValues('filter-pos');
+            const cityFilters = getMultiSelectValues('filter-city');
+            const ageFilters = getMultiSelectValues('filter-age');
+            const genderFilters = getMultiSelectValues('filter-gender');
+            const eduFilters = getMultiSelectValues('filter-edu');
+            const progressFilters = getMultiSelectValues('filter-progress');
+
             const loadingEl = document.getElementById('screening-loading');
 
             if (loadingEl) loadingEl.style.display = 'flex';
 
             filteredScreeningList = globalCandidates.filter(c => {
-                // Pastikan hanya memunculkan data yang status Pipeline utamanya masih 'RAW'
-                if (c.status !== 'RAW') return false; 
-                
-                // --- 1. FILTER POSISI (Pencarian Mengandung Kata / Tidak Exact) ---
-                if (posFilter !== 'all') {
-                    const posValue = (c.position || '').toLowerCase();
-                    // Jika posValue tidak mengandung kata dari posFilter, maka sembunyikan
-                    if (!posValue.includes(posFilter.toLowerCase())) return false;
+                // Kandidat tetap harus berada pada pipeline RAW.
+                if ((c.status || '').toString().trim().toUpperCase() !== 'RAW') return false;
+
+                // --- 1. FILTER POSISI (multi-select + contains)
+                if (!posFilters.includes('all')) {
+                    const posValue = (c.position || '').toString().toLowerCase();
+                    if (!posFilters.some(filter =>
+                        posValue.includes((filter || '').toString().toLowerCase())
+                    )) return false;
                 }
-                
-                // --- 2. FILTER DOMISILI ---
-                if (cityFilter !== 'all' && c.city !== cityFilter) return false;
-                
-                // --- 3. FILTER GENDER (Pria / Wanita) ---
-                if (genderFilter !== 'all' && c.gender !== genderFilter) return false;
-                
-                // --- 4. FILTER PENDIDIKAN (Penggabungan SMA/SMK) ---
-                if (eduFilter !== 'all') {
-                    // Gunakan huruf besar semua untuk menyamakan case
-                    const eduValue = (c.lastEducation || c.education || '').toUpperCase();
-                    
-                    if (eduFilter === 'SMA/SMK') {
-                        // Jika filter "SMA/SMK", loloskan jika value-nya SMA atau SMK
-                        if (eduValue !== 'SMA' && eduValue !== 'SMK' && eduValue !== 'SMA/SMK') return false;
-                    } else {
-                        // Untuk SD, SMP, D3, D4/S1 harus sama persis
-                        if (eduValue !== eduFilter.toUpperCase()) return false;
-                    }
+
+                // --- 2. FILTER DOMISILI berdasarkan KOLOM G / Alamat Lengkap.
+                // candidate.city saat ini merupakan field yang dipakai sebagai alamat/domisili
+                // oleh API. Jika fullAddress tersedia, prioritaskan field tersebut.
+                if (!cityFilters.includes('all')) {
+                    const addressValue = (
+                        c.fullAddress ||
+                        c.city ||
+                        ''
+                    ).toString().toLowerCase();
+
+                    if (!cityFilters.some(keyword =>
+                        addressValue.includes((keyword || '').toString().toLowerCase())
+                    )) return false;
                 }
-                
-                // --- 5. FILTER USIA ---
-                if (ageFilter !== 'all' && !isAgeInRange(c.age, ageFilter)) return false;
-                
-                // --- 6. FILTER PROGRESS (Screening Awal) ---
-                if (progressFilter !== 'all') {
-                    // Bersihkan spasi dan jadikan huruf besar agar tidak sensitive case
-                    const screeningAwalValue = (c.screeningAwal || '').trim().toUpperCase();
-                    
-                    if (progressFilter === 'BELUM') {
-                        // Hanya lolos jika blank/kosong
-                        if (screeningAwalValue !== '') return false;
-                    } 
-                    else if (progressFilter === 'SHORTLIST') {
-                        // Harus berisi SHORTLIST
-                        if (screeningAwalValue !== 'SHORTLIST') return false;
-                    } 
-                    else if (progressFilter === 'REJECT') {
-                        // Bisa berisi REJECT atau REJECTED
-                        if (screeningAwalValue !== 'REJECT' && screeningAwalValue !== 'REJECTED') return false;
-                    }
+
+                // --- 3. FILTER GENDER (multi-select)
+                if (!genderFilters.includes('all')) {
+                    const genderValue = (c.gender || '').toString().trim().toLowerCase();
+                    if (!genderFilters.some(filter =>
+                        genderValue === (filter || '').toString().trim().toLowerCase()
+                    )) return false;
+                }
+
+                // --- 4. FILTER PENDIDIKAN (multi-select + SMA/SMK)
+                if (!eduFilters.includes('all')) {
+                    const eduValue = (
+                        c.lastEducation ||
+                        c.education ||
+                        ''
+                    ).toString().trim().toUpperCase();
+
+                    const eduMatched = eduFilters.some(eduFilter => {
+                        if (eduFilter === 'SMA/SMK') {
+                            return eduValue === 'SMA' ||
+                                   eduValue === 'SMK' ||
+                                   eduValue === 'SMA/SMK';
+                        }
+                        return eduValue === eduFilter.toUpperCase();
+                    });
+
+                    if (!eduMatched) return false;
+                }
+
+                // --- 5. FILTER USIA (multi-select)
+                if (!ageFilters.includes('all')) {
+                    if (!ageFilters.some(range => isAgeInRange(c.age, range))) return false;
+                }
+
+                // --- 6. FILTER PROGRESS KOLOM M / Screening Awal (multi-select)
+                const screeningAwalValue = (c.screeningAwal || '')
+                    .toString()
+                    .trim()
+                    .toUpperCase();
+
+                if (!progressFilters.includes('all')) {
+                    const progressMatched = progressFilters.some(progressFilter => {
+                        switch (progressFilter) {
+                            case 'BELUM':
+                                return screeningAwalValue === '';
+                            case 'SHORTLIST':
+                                return screeningAwalValue === 'SHORTLIST';
+                            case 'REJECT':
+                                return screeningAwalValue === 'REJECT' ||
+                                       screeningAwalValue === 'REJECTED';
+                            case 'SKIP':
+                                return screeningAwalValue === 'SKIP';
+                            default:
+                                return true;
+                        }
+                    });
+
+                    if (!progressMatched) return false;
+                } else {
+                    // DEFAULT: hanya kandidat yang kolom M masih kosong.
+                    if (screeningAwalValue !== '') return false;
                 }
 
                 return true;
@@ -2497,7 +2559,6 @@
             currentScreeningIndex = 0;
             renderScreeningCard(filteredScreeningList);
 
-            // Update badge angka antrean
             const queueCountEl = document.getElementById('queue-count');
             if (queueCountEl) queueCountEl.innerText = filteredScreeningList.length;
 
@@ -2546,9 +2607,7 @@
             const screeningView = document.getElementById('view-screening');
             if (!screeningView || screeningView.classList.contains('hidden')) return;
 
-            const rawList = filteredScreeningList.filter(c => c.status === 'RAW');
-            if (currentScreeningIndex >= rawList.length) return;
-            const currentCandidate = rawList[currentScreeningIndex];
+            const currentCandidate = filteredScreeningList[currentScreeningIndex];
             if (!currentCandidate) return;
 
             if (e.key === 'ArrowLeft') {
