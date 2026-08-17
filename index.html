@@ -1973,6 +1973,19 @@
     }
     body.theme-day #active-card .text-blue-600{color:#a94f35!important}
     </style>
+
+<style id="slicer-auto-collapse">
+/* Slicer: compact when closed, expands only while being used. */
+.slicer-dropdown{position:relative;min-width:160px;flex:1;}
+.slicer-dropdown > summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:1px solid #cbd5e1;border-radius:12px;padding:10px 14px;background:#f8fafc;font-size:13px;font-weight:600;color:#334155;transition:.15s;}
+.slicer-dropdown > summary::-webkit-details-marker{display:none;}
+.slicer-dropdown > summary:after{content:'\f078';font-family:'Font Awesome 6 Free';font-weight:900;font-size:11px;color:#94a3b8;transition:transform .15s;}
+.slicer-dropdown[open] > summary{border-color:#b85c43;box-shadow:0 0 0 3px rgba(184,92,67,.10);background:#fff;}
+.slicer-dropdown[open] > summary:after{transform:rotate(180deg);}
+.slicer-dropdown .slicer-options{margin-top:7px;padding:7px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 12px 28px rgba(15,23,42,.10);position:absolute;z-index:40;left:0;right:0;}
+.slicer-dropdown select{min-height:42px;max-height:190px;}
+.slicer-dropdown .slicer-selected-count{font-size:11px;color:#b85c43;font-weight:700;white-space:nowrap;}
+</style>
 </head>
 <body class="theme-day flex flex-col h-screen overflow-hidden text-slate-800">
 
@@ -2110,19 +2123,22 @@
                         </div>
 
                         <!-- Slicer Posisi -->
-                        <div class="flex-1 min-w-[200px]">
-                            <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Posisi</label>
-                            <select id="filter-pos" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                        <details id="slicer-filter-pos" class="slicer-dropdown">
+    <summary><span>Slicer Posisi</span><span class="slicer-selected-count" id="slicer-count-filter-pos"></span></summary>
+    <div class="slicer-options">
+        <select id="filter-pos" multiple onchange="handleSlicerChange('slicer-filter-pos')" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                                 <option value="all" selected>Semua Posisi</option>
                                 <option value="Kasir">Kasir</option>
                                 <option value="Promotor/Pramuniaga">Promotor/Pramuniaga</option>
                                 <option value="Store boy">Store boy</option>
                                 <option value="Supervisor">Supervisor</option>
                             </select>
-                        </div>
-                        <div class="flex-1 min-w-[200px]">
-                            <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Domisili</label>
-                            <select id="filter-city" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+    </div>
+</details>
+                        <details id="slicer-filter-city" class="slicer-dropdown">
+    <summary><span>Slicer Domisili</span><span class="slicer-selected-count" id="slicer-count-filter-city"></span></summary>
+    <div class="slicer-options">
+        <select id="filter-city" multiple onchange="handleSlicerChange('slicer-filter-city')" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                                 <option value="all" selected>Semua Domisili (Solo Raya)</option>
                                 <option value="Surakarta">Surakarta</option>
                                 <option value="Boyolali">Boyolali</option>
@@ -2130,10 +2146,12 @@
                                 <option value="Karanganyar">Karanganyar</option>
                                 <option value="Sragen">Sragen</option>
                             </select>
-                        </div>
-                        <div class="flex-1 min-w-[160px]">
-                            <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Usia</label>
-                            <select id="filter-age" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+    </div>
+</details>
+                        <details id="slicer-filter-age" class="slicer-dropdown">
+    <summary><span>Slicer Usia</span><span class="slicer-selected-count" id="slicer-count-filter-age"></span></summary>
+    <div class="slicer-options">
+        <select id="filter-age" multiple onchange="handleSlicerChange('slicer-filter-age')" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                                 <option value="all" selected>Semua Usia</option>
                                 <option value="17-20">17 - 20 Tahun</option>
                                 <option value="21-25">21 - 25 Tahun</option>
@@ -2141,22 +2159,26 @@
                                 <option value="31-35">31 - 35 Tahun</option>
                                 <option value="36+">36 Tahun ke atas</option>
                             </select>
-                        </div>
+    </div>
+</details>
                         
                         <!-- Slicer Gender (Pria / Wanita) -->
-                        <div class="flex-1 min-w-[160px]">
-                            <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Gender</label>
-                            <select id="filter-gender" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                        <details id="slicer-filter-gender" class="slicer-dropdown">
+    <summary><span>Slicer Gender</span><span class="slicer-selected-count" id="slicer-count-filter-gender"></span></summary>
+    <div class="slicer-options">
+        <select id="filter-gender" multiple onchange="handleSlicerChange('slicer-filter-gender')" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                                 <option value="all" selected>Semua Gender</option>
                                 <option value="Pria">Pria</option>
                                 <option value="Wanita">Wanita</option>
                             </select>
-                        </div>
+    </div>
+</details>
 
                         <!-- Slicer Pendidikan -->
-                        <div class="flex-1 min-w-[160px]">
-                            <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Pendidikan</label>
-                            <select id="filter-edu" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                        <details id="slicer-filter-edu" class="slicer-dropdown">
+    <summary><span>Slicer Pendidikan</span><span class="slicer-selected-count" id="slicer-count-filter-edu"></span></summary>
+    <div class="slicer-options">
+        <select id="filter-edu" multiple onchange="handleSlicerChange('slicer-filter-edu')" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                                 <option value="all" selected>Semua Pend. Terakhir</option>
                                 <option value="SD">SD</option>
                                 <option value="SMP">SMP</option>
@@ -2164,19 +2186,22 @@
                                 <option value="D3">D3</option>
                                 <option value="D4/S1">D4/S1</option>
                             </select>
-                        </div>
+    </div>
+</details>
 
                         <!-- Slicer Progress -->
-                        <div class="flex-1 min-w-[160px]">
-                            <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Slicer Progress</label>
-                            <select id="filter-progress" multiple onchange="triggerScreeningFilter()" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
+                        <details id="slicer-filter-progress" class="slicer-dropdown">
+    <summary><span>Slicer Progress</span><span class="slicer-selected-count" id="slicer-count-filter-progress"></span></summary>
+    <div class="slicer-options">
+        <select id="filter-progress" multiple onchange="handleSlicerChange('slicer-filter-progress')" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
                                 <option value="all" selected>Semua Progress</option>
                                 <option value="BELUM">Belum Discreening</option>
                                 <option value="SHORTLIST">Shortlist</option>
                                 <option value="REJECT">Reject</option>
                                 <option value="SKIP">Skip</option>
                             </select>
-                        </div>
+    </div>
+</details>
                         
                         <div class="queue-summary text-xs font-semibold text-slate-600 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2">
                             <i class="fa-solid fa-filter text-[#b85c43]"></i> Antrean Saring: <span id="queue-count" class="font-bold text-[#b85c43] text-sm">0</span> kandidat
@@ -2369,6 +2394,8 @@
         }
 
         initTheme();
+        initSlicerSummaries();
+        initSlicerSummaries();
 
         // ============================================================
         // GLOBAL DATA & NAVIGATION SYSTEM
@@ -2422,6 +2449,63 @@
             if (tab === 'screening') initScreeningQueue();
             if (tab === 'pipeline') renderKanbanBoard(globalCandidates);
             if (tab === 'database') renderDatabaseTable(globalCandidates);
+        }
+
+        // Auto-collapse slicer setelah pilihan dibuat.
+        // User cukup klik judul slicer untuk membukanya kembali.
+        function handleSlicerChange(detailsId) {
+            const details = document.getElementById(detailsId);
+            const select = details ? details.querySelector('select') : null;
+            updateSlicerSummary(select);
+            triggerScreeningFilter();
+            if (details) {
+                // Tutup setelah browser selesai memproses perubahan pilihan.
+                setTimeout(() => { details.open = false; }, 120);
+            }
+        }
+
+        function updateSlicerSummary(select) {
+            if (!select) return;
+            const id = select.id;
+            const countEl = document.getElementById('slicer-count-' + id);
+            if (!countEl) return;
+            const values = Array.from(select.selectedOptions).map(o => o.value).filter(Boolean);
+            if (!values.length || values.includes('all')) {
+                countEl.textContent = 'Semua';
+            } else if (values.length === 1) {
+                countEl.textContent = select.selectedOptions[0].textContent.trim();
+            } else {
+                countEl.textContent = values.length + ' dipilih';
+            }
+        }
+
+        function initSlicerSummaries() {
+            ['filter-pos','filter-city','filter-age','filter-gender','filter-edu','filter-progress'].forEach(id => {
+                updateSlicerSummary(document.getElementById(id));
+            });
+        }
+
+        // Auto-collapse slicer setelah pilihan dibuat. Klik judul slicer untuk membukanya kembali.
+        function handleSlicerChange(detailsId) {
+            const details = document.getElementById(detailsId);
+            const select = details ? details.querySelector('select') : null;
+            updateSlicerSummary(select);
+            triggerScreeningFilter();
+            if (details) setTimeout(() => { details.open = false; }, 120);
+        }
+
+        function updateSlicerSummary(select) {
+            if (!select) return;
+            const countEl = document.getElementById('slicer-count-' + select.id);
+            if (!countEl) return;
+            const values = Array.from(select.selectedOptions).map(o => o.value).filter(Boolean);
+            if (!values.length || values.includes('all')) countEl.textContent = 'Semua';
+            else if (values.length === 1) countEl.textContent = select.selectedOptions[0].textContent.trim();
+            else countEl.textContent = values.length + ' dipilih';
+        }
+
+        function initSlicerSummaries() {
+            ['filter-pos','filter-city','filter-age','filter-gender','filter-edu','filter-progress'].forEach(id => updateSlicerSummary(document.getElementById(id)));
         }
 
         // Helper: ambil semua nilai yang dipilih dari slicer multi-select.
