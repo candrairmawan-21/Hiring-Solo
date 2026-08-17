@@ -80,7 +80,33 @@ function renderScreeningCard(list) {
     // Fallback ke candidate.city ditambahkan agar section ini tidak selalu tampil "-".
     const candidateAddress = candidate.fullAddress || candidate.city || '-';
     const candidateStatus = candidate.status || 'RAW';
+    const candidateScreeningAwal = (candidate.screeningAwal || '').toString().trim().toUpperCase();
     const candidateExperience = candidate.experience || 'Tidak ada catatan';
+
+    // Kolom M "Screening Awal":
+    // - kosong => section disembunyikan
+    // - SHORTLIST / REJECT / SKIP => tampilkan progress terakhir
+    const screeningProgressLabel = candidateScreeningAwal === 'REJECTED'
+        ? 'REJECT'
+        : candidateScreeningAwal;
+
+    const hasFinalScreeningDecision =
+        candidateScreeningAwal === 'SHORTLIST' ||
+        candidateScreeningAwal === 'REJECT' ||
+        candidateScreeningAwal === 'REJECTED';
+
+    const screeningButtonsDisabledClass = hasFinalScreeningDecision
+        ? 'opacity-45 cursor-not-allowed'
+        : 'cursor-pointer';
+
+    const screeningButtonsDisabledAttr = hasFinalScreeningDecision ? 'disabled' : '';
+
+    const screeningProgressCard = screeningProgressLabel ? `
+        <div class="mt-4 flex items-center justify-between bg-amber-50 px-4 py-3 rounded-xl border border-amber-100 shadow-inner">
+            <span class="text-xs font-bold text-amber-800">Screening Awal (Kolom M):</span>
+            <span class="text-xs bg-amber-600 text-white px-3 py-1 rounded-full font-bold shadow-sm">${screeningProgressLabel}</span>
+        </div>
+    ` : '';
     // Kolom Q "Link CV" (field: cvLink dari code.gs). Di Sheet, kolom ini berisi formula
     // HYPERLINK() dengan teks tampilan "Lihat CV" — Apps Script getValues() hanya membaca teks
     // tampilan tsb, bukan URL aslinya. Tombol ditampilkan HANYA jika sel terisi & bukan
@@ -151,8 +177,10 @@ function renderScreeningCard(list) {
                     </span>`}
                 </div>` : ''}
                 
+                ${screeningProgressCard}
+
                 <div class="mt-4 flex items-center justify-between bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 shadow-inner">
-                    <span class="text-xs font-bold text-blue-800">Progress Rekrutmen:</span>
+                    <span class="text-xs font-bold text-blue-800">Status Hiring:</span>
                     <span class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-bold shadow-sm">${candidateStatus}</span>
                 </div>
 
@@ -163,13 +191,13 @@ function renderScreeningCard(list) {
             </div>
             
             <div class="p-5 bg-slate-50 flex justify-between gap-3 border-t border-slate-100">
-                <button onclick="handleScreeningAction('${candidateId}', 'REJECTED')" class="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                <button onclick="handleScreeningAction('${candidateId}', 'REJECTED')" ${screeningButtonsDisabledAttr} class="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 ${screeningButtonsDisabledClass} shadow-sm">
                     <i class="fa-solid fa-xmark text-lg"></i> Reject
                 </button>
                 <button onclick="handleScreeningAction('${candidateId}', 'SKIP')" class="w-16 bg-white border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm" title="Lewati Sementara">
                     <i class="fa-solid fa-rotate-right"></i>
                 </button>
-                <button onclick="handleScreeningAction('${candidateId}', 'SHORTLIST')" class="flex-1 bg-blue-600 text-white hover:bg-blue-700 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20">
+                <button onclick="handleScreeningAction('${candidateId}', 'SHORTLIST')" ${screeningButtonsDisabledAttr} class="flex-1 bg-blue-600 text-white hover:bg-blue-700 py-3.5 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2 ${screeningButtonsDisabledClass} shadow-md shadow-blue-600/20">
                     <i class="fa-solid fa-check text-lg"></i> Shortlist
                 </button>
             </div>
@@ -217,6 +245,26 @@ async function pushScreeningResultToSheet(candidateId, action) {
  * @param {string} action - Aksi keputusan (SHORTLIST, REJECTED, SKIP)
  */
 function handleScreeningAction(candidateId, action) {
+    const currentCandidate = (typeof globalCandidates !== 'undefined')
+        ? globalCandidates.find(c => c.id === candidateId)
+        : null;
+
+    const currentScreeningAwal = (currentCandidate?.screeningAwal || '')
+        .toString()
+        .trim()
+        .toUpperCase();
+
+    // SHORTLIST / REJECTED bersifat final pada tahap Screening Awal.
+    if ((action === 'SHORTLIST' || action === 'REJECTED') &&
+        (currentScreeningAwal === 'SHORTLIST' ||
+         currentScreeningAwal === 'REJECT' ||
+         currentScreeningAwal === 'REJECTED')) {
+        if (typeof showToast === 'function') {
+            showToast('Kandidat sudah memiliki keputusan Screening Awal.', 'info');
+        }
+        return;
+    }
+
     const card = document.getElementById('active-card');
     
     // 1. Eksekusi Animasi Keluar (Out-Animation)
