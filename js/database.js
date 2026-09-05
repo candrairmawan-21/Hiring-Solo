@@ -71,8 +71,13 @@ function renderDatabaseTable(allCandidates, searchTerm = '') {
         }
 
         // === LOGIKA TOMBOL CV (Kolom Q) ===
-        // Asumsi properti backend Anda bernama 'cv'. Jika beda, ganti variabel c.cv ini.
-        const cvLink = (c.cv || '').trim();
+        // PERBAIKAN: field dari backend (code.gs) bernama 'cvLink', BUKAN 'cv'.
+        // js/screening.js dan js/pipeline.js sudah memakai 'cvLink' dengan benar;
+        // file ini sebelumnya memakai nama field yang salah sehingga tombol CV di
+        // tabel Database SELALU tampil "Kosong" walau CV sebenarnya ada di Sheet.
+        // Fallback ke c.cv tetap dipertahankan untuk kompatibilitas mundur, kalau-kalau
+        // ada baris data lama yang memakai nama field itu.
+        const cvLink = (c.cvLink || c.cv || '').trim();
         let cvButtonHTML = '';
         
         if (cvLink !== '' && cvLink.toLowerCase() !== 'belum response' && cvLink.toLowerCase().includes('http')) {
@@ -146,5 +151,50 @@ function changeDatabasePage(direction) {
     currentDatabasePage += direction;
     if (typeof refreshDatabaseView === 'function') {
         refreshDatabaseView();
+    }
+}
+
+// PERBAIKAN — FUNGSI HILANG: tombol WA di tabel Database (lihat renderDatabaseTable di atas)
+// memanggil onclick="copyWaLink(...)" tapi fungsi ini sebelumnya TIDAK PERNAH didefinisikan
+// di mana pun dalam repo ini, sehingga setiap klik tombol WA di tab Database melempar
+// "Uncaught ReferenceError: copyWaLink is not defined" dan tidak melakukan apa-apa.
+//
+// Fungsi ini menyalin link wa.me (format lengkap 62xxxx, dibuat via generateWhatsAppLink
+// dari js/pipeline.js) ke clipboard, dengan fallback untuk browser/HTTP non-secure-context
+// yang tidak mendukung navigator.clipboard.
+function copyWaLink(rawPhone) {
+    if (!rawPhone || rawPhone === '-') {
+        if (typeof showToast === 'function') showToast('Nomor WhatsApp tidak tersedia.', 'error');
+        return;
+    }
+
+    const waLink = (typeof generateWhatsAppLink === 'function')
+        ? generateWhatsAppLink(rawPhone)
+        : `https://wa.me/${rawPhone.toString().replace(/\D/g, '')}`;
+
+    const onCopySuccess = () => {
+        if (typeof showToast === 'function') showToast('Link wa.me berhasil disalin!', 'success');
+    };
+    const onCopyFail = () => {
+        if (typeof showToast === 'function') showToast('Gagal menyalin link. Salin manual: ' + waLink, 'error');
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(waLink).then(onCopySuccess).catch(onCopyFail);
+    } else {
+        // Fallback lama untuk konteks non-secure (http) yang tidak mengizinkan Clipboard API
+        try {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = waLink;
+            tempInput.style.position = 'fixed';
+            tempInput.style.opacity = '0';
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            onCopySuccess();
+        } catch (err) {
+            onCopyFail();
+        }
     }
 }

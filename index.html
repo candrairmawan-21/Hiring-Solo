@@ -2395,13 +2395,20 @@
 
         initTheme();
         initSlicerSummaries();
-        initSlicerSummaries();
 
         // ============================================================
         // GLOBAL DATA & NAVIGATION SYSTEM
         // ============================================================
         let globalCandidates = [];
         let filteredScreeningList = [];
+        // PERBAIKAN: sebelumnya variabel ini TIDAK PERNAH dideklarasikan dengan let/var —
+        // hanya diberi nilai langsung ("currentScreeningIndex = 0;") di initScreeningQueue().
+        // Ini membuatnya menjadi implicit global (window.currentScreeningIndex), yang
+        // hanya bekerja karena skrip berjalan di non-strict mode. Jika suatu saat kode
+        // di-refactor ke module/'use strict', ini akan langsung error
+        // "ReferenceError: currentScreeningIndex is not defined". Dideklarasikan eksplisit
+        // di sini agar aman dan jelas cakupannya.
+        let currentScreeningIndex = 0;
 
         // Sistem Toast Global
         function showToast(message, type = 'success') {
@@ -2453,6 +2460,11 @@
 
         // Auto-collapse slicer setelah pilihan dibuat.
         // User cukup klik judul slicer untuk membukanya kembali.
+        // PERBAIKAN: ketiga fungsi di bawah ini SEBELUMNYA didefinisikan DUA KALI berturut-turut
+        // (copy-paste duplikat, kemungkinan sisa proses edit oleh AI sebelumnya). Secara teknis
+        // tidak menyebabkan bug fungsional (definisi kedua menimpa yang pertama), tapi berisiko
+        // tinggi menyebabkan bug "hantu" di masa depan jika salah satu AI/dev hanya mengedit
+        // salah satu salinan. Duplikat sudah dihapus, disisakan satu definisi bersih.
         function handleSlicerChange(detailsId) {
             const details = document.getElementById(detailsId);
             const select = details ? details.querySelector('select') : null;
@@ -2483,29 +2495,6 @@
             ['filter-pos','filter-city','filter-age','filter-gender','filter-edu','filter-progress'].forEach(id => {
                 updateSlicerSummary(document.getElementById(id));
             });
-        }
-
-        // Auto-collapse slicer setelah pilihan dibuat. Klik judul slicer untuk membukanya kembali.
-        function handleSlicerChange(detailsId) {
-            const details = document.getElementById(detailsId);
-            const select = details ? details.querySelector('select') : null;
-            updateSlicerSummary(select);
-            triggerScreeningFilter();
-            if (details) setTimeout(() => { details.open = false; }, 120);
-        }
-
-        function updateSlicerSummary(select) {
-            if (!select) return;
-            const countEl = document.getElementById('slicer-count-' + select.id);
-            if (!countEl) return;
-            const values = Array.from(select.selectedOptions).map(o => o.value).filter(Boolean);
-            if (!values.length || values.includes('all')) countEl.textContent = 'Semua';
-            else if (values.length === 1) countEl.textContent = select.selectedOptions[0].textContent.trim();
-            else countEl.textContent = values.length + ' dipilih';
-        }
-
-        function initSlicerSummaries() {
-            ['filter-pos','filter-city','filter-age','filter-gender','filter-edu','filter-progress'].forEach(id => updateSlicerSummary(document.getElementById(id)));
         }
 
         // Helper: ambil semua nilai yang dipilih dari slicer multi-select.
@@ -2695,12 +2684,15 @@
             if (!currentCandidate) return;
 
             if (e.key === 'ArrowLeft') {
-                handleScreeningAction(currentCandidate.id, 'REJECTED', filteredScreeningList);
+                // Catatan: handleScreeningAction hanya menerima 2 parameter (candidateId, action).
+                // Argumen ke-3 (filteredScreeningList) sebelumnya dikirim tapi tidak pernah dipakai
+                // oleh fungsinya — dihapus di sini agar tidak menyesatkan pembaca kode.
+                handleScreeningAction(currentCandidate.id, 'REJECTED');
             } else if (e.key === 'ArrowRight') {
-                handleScreeningAction(currentCandidate.id, 'SHORTLIST', filteredScreeningList);
+                handleScreeningAction(currentCandidate.id, 'SHORTLIST');
             } else if (e.key === ' ' || e.key === 'r' || e.key === 'R') {
                 e.preventDefault();
-                handleScreeningAction(currentCandidate.id, 'SKIP', filteredScreeningList);
+                handleScreeningAction(currentCandidate.id, 'SKIP');
             }
         });
 

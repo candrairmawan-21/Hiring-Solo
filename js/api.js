@@ -23,26 +23,21 @@ async function fetchCandidatesFromSheet() {
 // 2. FUNGSI: Mengirim pembaruan status kandidat ke Google Sheet
 async function updateCandidateDataInSheet(candidateId, updateData) {
     try {
-        // PENTING — TEMUAN AUDIT: Google Apps Script Web App TIDAK mengirim header CORS
-        // (Access-Control-Allow-Origin) pada response POST — berbeda dari GET yang otomatis
-        // lolos CORS (lihat fetchCandidatesFromSheet di atas, yang bekerja normal). Ini
-        // keterbatasan platform GAS itu sendiri, BUKAN sesuatu yang bisa diperbaiki lewat
-        // kode di code.gs (ContentService tidak punya cara mengatur header CORS secara manual).
-        // doPost() di server TETAP berjalan & TETAP menyimpan data dengan benar — browser
-        // hanya memblokir JS di sisi client membaca response-nya (net::ERR_FAILED walau
-        // server sebenarnya membalas 200 OK).
-        //
-        // SOLUSI: kirim dengan mode "no-cors". Konsekuensinya, response menjadi "opaque" —
-        // status maupun isi body-nya TIDAK BISA dibaca sama sekali oleh JS (pembatasan
-        // keamanan browser, bukan bug). Karena itu kita TIDAK BISA lagi mengecek
-        // result.success dari response — keberhasilan di sini bersifat OPTIMISTIC: dianggap
-        // berhasil kalau fetch tidak melempar error jaringan (mis. benar-benar offline).
-        // Kegagalan backend yang sah (mis. candidateId tidak ditemukan di Sheet) TIDAK akan
-        // lagi terdeteksi dari sisi client — verifikasi manual di Sheet tetap disarankan
-        // sesekali. Ini trade-off yang tidak terhindarkan akibat batasan CORS GAS di atas.
-        await fetch(CONFIG.API_URL, {
+        // PERBAIKAN (sebelumnya memakai mode:"no-cors"):
+        // Akar masalah CORS pada Google Apps Script Web App BUKAN karena GAS tidak pernah
+        // mengirim header CORS, melainkan karena browser mengirim "preflight" OPTIONS
+        // request lebih dulu ketika Content-Type di-set ke "application/json" — dan GAS
+        // tidak bisa merespons preflight itu dengan benar (doOptions tidak didukung penuh).
+        // Karena request ini TIDAK pernah menge-set header Content-Type secara eksplisit,
+        // browser otomatis memakai "text/plain;charset=UTF-8" untuk body berupa string —
+        // ini termasuk "simple request" yang TIDAK memicu preflight sama sekali.
+        // Akibatnya request ini sebenarnya SUDAH BISA lolos CORS tanpa mode:"no-cors".
+        // Dengan menghapus "no-cors", response dari doPost() sekarang BISA dibaca oleh
+        // client, sehingga kita bisa mengecek result.success dan menampilkan pesan error
+        // backend yang sesungguhnya (mis. candidateId tidak ditemukan), bukan lagi
+        // asumsi "optimistic" semata.
+        const response = await fetch(CONFIG.API_URL, {
             method: "POST",
-            mode: "no-cors",
             body: JSON.stringify({
                 action: "updateStatus",
                 candidateId: candidateId,
@@ -50,8 +45,18 @@ async function updateCandidateDataInSheet(candidateId, updateData) {
             })
         });
 
-        return true; // Optimistic: fetch tidak melempar error = anggap terkirim
+        const result = await response.json();
+
+        if (!result || result.success !== true) {
+            console.error("Backend menolak update:", result);
+            showToast((result && result.message) || "Backend menolak pembaruan data.", "error");
+            return false;
+        }
+
+        return true;
     } catch (error) {
+        // Jika suatu saat deployment GAS berubah dan kembali memicu CORS error murni,
+        // fetch akan melempar TypeError di sini. Kita fallback aman ke pesan generik.
         console.error("Gagal mengupdate data:", error);
         showToast("Gagal menyinkronkan data ke Google Sheet.", "error");
         return false;

@@ -210,11 +210,9 @@ function renderScreeningCard(list) {
  * - SELALU menulis field "screeningAwal" (kolom M "Screening Awal") = aksi yang diambil.
  * - Menulis field "status" (kolom V "Status Hiring") HANYA untuk REJECTED & SHORTLIST — SKIP
  *   tidak mengubah status pipeline, kandidat tetap RAW dan bisa muncul lagi di antrean.
- * - Memakai updateCandidateDataInSheet() dari js/api.js. CATATAN: karena Google Apps Script
- *   Web App tidak mengirim header CORS pada response POST, fungsi itu memakai mode "no-cors"
- *   dan keberhasilannya bersifat OPTIMISTIC (fetch tidak error = dianggap terkirim) — bukan
- *   konfirmasi tervalidasi dari server, karena response POST tidak bisa dibaca sama sekali
- *   oleh browser (lihat catatan lengkap di js/api.js).
+ * - Memakai updateCandidateDataInSheet() dari js/api.js. PERBAIKAN: fungsi itu sekarang
+ *   benar-benar membaca response dari backend (result.success) alih-alih hanya berasumsi
+ *   optimistic — lihat catatan lengkap & alasannya di js/api.js.
  *
  * @param {string} candidateId
  * @param {string} action - 'REJECTED' | 'SHORTLIST' | 'SKIP'
