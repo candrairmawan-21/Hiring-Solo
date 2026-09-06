@@ -32,6 +32,10 @@ sesi berikutnya.
   ke sana (mis. user menempelkannya di chat), tuliskan ringkasannya di
   `docs/ARCHITECTURE.md` bagian kontrak API, supaya sesi berikutnya tidak
   perlu menebak-nebak lagi.
+- **Jangan duplikasi logika "tahapan kandidat"** dengan menulis if/else baru
+  berdasar kolom M-W di file lain. Pakai/lengkapi `getCandidateStage()` di
+  `js/api.js` (satu sumber logika, sudah dipakai Screening & Database) —
+  lihat `docs/ARCHITECTURE.md` § Fungsi bersama.
 - Sebelum mengubah **nama field data** (`cvLink`, `city`, `screeningAwal`,
   dst.), cek dulu semua tempat field itu dipakai — field yang sama sengaja
   dipakai konsisten lintas `screening.js`, `pipeline.js`, `database.js`.

@@ -28,29 +28,46 @@ Setiap tab (`switchTab()`) merender ulang dari `globalCandidates` yang sama —
 
 ## Pemetaan Field (Sheet -> objek kandidat JS)
 
-Field berikut **diasumsikan** dikirim oleh `code.gs` (disimpulkan dari
-pemakaiannya di `js/*.js` + komentar audit yang sudah ada sebelumnya di kode).
-**Belum diverifikasi langsung ke `code.gs`** karena file itu tidak ada di
-repo — verifikasi ini masuk ke `docs/KNOWN_ISSUES.md`.
+**Update:** header kolom A-W di bawah ini sudah **dikonfirmasi langsung** dari
+Google Sheet sumber (lihat tombol "Buka Google Sheet Master" di header app,
+atau `js/config.js`). Nama *field JS* untuk kolom A-L, Q, S, V sudah
+dipastikan benar dari kode yang ada. Nama field untuk kolom **N, O, P, R, T,
+U, W masih ASUMSI** (belum ada `code.gs` untuk diverifikasi) — lihat catatan
+di setiap baris dan di `docs/KNOWN_ISSUES.md`.
 
-| Field JS         | Asal (dugaan)         | Dipakai di                          | Catatan |
-|-------------------|-----------------------|--------------------------------------|---------|
-| `id`               | Kolom ID               | semua                                 | |
-| `name`              | Nama                   | semua                                  | |
-| `position`           | Posisi dilamar          | semua                                   | |
-| `phone`               | No. WhatsApp             | semua (dinormalisasi via `normalizePhoneNumber` saat dibutuhkan) | |
-| `age`                  | Usia                      | screening, filter usia                 | |
-| `gender`                | Gender                     | screening, filter gender                | |
-| `city`                    | Kolom G "Alamat Lengkap"    | screening (fallback alamat), filter domisili | Lihat catatan di bawah — nama field **menyesatkan**. |
-| `fullAddress`               | (kemungkinan tidak pernah dikirim backend) | screening, filter domisili (prioritas di atas `city`) | Selalu fallback ke `city` bila kosong. |
-| `lastEducation` / `education` | Pendidikan terakhir | screening, filter pendidikan | Dua nama field dipakai bergantian (fallback ganda) — backend kemungkinan hanya kirim salah satu. |
-| `score`                  | Kolom J "Score"            | screening (`formatScoreAsPercentage`)   | Diasumsikan pecahan (0–1) ATAU skala 0–100. |
-| `screeningAwal`            | Kolom M "Screening Awal"     | screening (keputusan final Reject/Shortlist/Skip) | Domain: `''`, `SHORTLIST`, `REJECT`/`REJECTED`, `SKIP`. |
-| `status`                     | Kolom V "Status Hiring"       | dashboard, pipeline, database              | Domain: `RAW`, `SHORTLIST`, `WAITING_CV`, `REVIEW_CV`, `INTERVIEW`, `HIRED`, `REJECTED`. |
-| `cvLink`                       | Kolom Q "Link CV"                | screening, pipeline, database (**field benar** — lihat CHANGELOG) | Hasil `getValues()` atas sel dengan formula `HYPERLINK()` — GAS hanya membaca **teks tampilan**, bukan URL sebenarnya, kecuali teks tampilannya memang berupa URL. |
-| `interviewDate`                  | Ditulis balik oleh app (`scheduleInterviewAction`) | pipeline | |
-| `isDuplicate`                       | Deteksi duplikat di backend         | screening, database                        | |
-| `experience`                          | Catatan pengalaman                    | screening                                    | |
+| Kolom | Header di Sheet | Field JS (dugaan bila belum pasti) | Dipakai di |
+|---|---|---|---|
+| A | Candidate ID | `id` | semua |
+| B | Nama Lengkap | `name` | semua |
+| C | *(kolom kosong/spacer di Sheet)* | — | — |
+| D | Usia | `age` | screening, filter |
+| E | Jenis Kelamin | `gender` | screening, filter |
+| F | No HP | `phone` | semua (dinormalisasi via `normalizePhoneNumber`) |
+| G | Alamat Lengkap | `city` (⚠️ nama field menyesatkan, lihat catatan di bawah), fallback `fullAddress` | screening, filter domisili |
+| H | Pengalaman kerja | `experience` | screening |
+| I | Posisi yang dilamar | `position` | semua |
+| J | Score | `score` | screening (`formatScoreAsPercentage`) |
+| K | Grade | *(belum dipakai di UI manapun)* | — |
+| L | Date Submitted | *(belum dipakai di UI manapun)* | — |
+| M | **Screening Awal** | `screeningAwal` | screening (keputusan Reject/Shortlist/Skip), dashboard (metrik), pipeline (gerbang masuk kanban) — domain: `''`, `SHORTLIST`, `REJECT`/`REJECTED`, `SKIP` (kapitalisasi tidak konsisten di data asli, semua perbandingan menormalkan ke UPPERCASE) |
+| N | **Review by** (nama reviewer) | ⚠️ ASUMSI: `reviewedBy` / `reviewBy` / `reviewer` | `getCandidateStage()` di `js/api.js` (tahapan kandidat) |
+| O | **Link WA** (link wa.me + pesan siap kirim, tampaknya sudah dibuat backend) | ⚠️ ASUMSI: `waLink` — **belum dipakai di UI manapun**, app membuat link WA-nya sendiri lewat `generateWhatsAppLink()` di `js/pipeline.js` alih-alih memakai link dari kolom ini | (belum dipakai) |
+| P | **WA CV** (status kirim WA, nilai contoh: `Sent` / kosong) | ⚠️ ASUMSI: `waSent` / `waCv` | `getCandidateStage()` (deteksi tahap "WA Terkirim") |
+| Q | **Link CV** (`Lihat CV` = hyperlink ke CV, `Belum Response` = belum isi form) | `cvLink` (**sudah dipastikan benar** — lihat CHANGELOG) | screening, pipeline, database, `getCandidateStage()` |
+| R | **Review CV** (lolos/tidak untuk interview) | ⚠️ ASUMSI: `cvReview` / `reviewCv` | `getCandidateStage()` (tahap "Review CV: ...") |
+| S | Tanggal Interview | `interviewDate` (**sudah dipastikan benar** — ditulis balik oleh `scheduleInterviewAction`) | pipeline, `getCandidateStage()` |
+| T | **Hasil Interview** | ⚠️ ASUMSI: `interviewResult` / `hasilInterview` | `getCandidateStage()` (tahap "Hasil Interview: ...") |
+| U | Remark | ⚠️ ASUMSI: `remark` | `getCandidateStage()` (detail tambahan) |
+| V | **Status Hiring** | `status` (**sudah dipastikan benar**) | dashboard, pipeline, database, `getCandidateStage()` — domain: `''`/`RAW`, `SHORTLIST`, `WAITING_CV`, `REVIEW_CV`, `INTERVIEW`, `HIRED`, `REJECTED` |
+| W | Store Penempatan | ⚠️ ASUMSI: `placementStore` / `storePenempatan` / `store` | `getCandidateStage()` (detail saat Hired) |
+| — | Deteksi duplikat (dihitung backend?) | `isDuplicate` | screening, database |
+
+Field dengan tanda ⚠️ ASUMSI memakai **fallback berlapis** di
+`getCandidateStage()` (`js/api.js`) — mis. `c.reviewedBy || c.reviewBy ||
+c.reviewer || c.n` — supaya tetap berfungsi (walau mungkin tidak lengkap)
+sekalipun nama field aslinya sedikit berbeda dari dugaan ini. **Begitu
+`code.gs` tersedia**, cocokkan nama field asli lalu perbarui daftar alias di
+`getCandidateStage()` — lihat `docs/KNOWN_ISSUES.md` #1.
 
 ### Catatan penting: `city` sebenarnya berarti "Alamat"
 
@@ -60,6 +77,20 @@ Komentar audit yang sudah ada di `js/screening.js` (baris terkait
 fallback ganda (`c.fullAddress || c.city`) di kode ini sudah menangani hal
 itu. **Jangan hapus fallback ini** kecuali `code.gs` sudah dipastikan
 mengirim `fullAddress` sungguhan.
+
+### Fungsi bersama: `getCandidateStage(candidate)` (di `js/api.js`)
+
+Ditambahkan untuk menjawab kebutuhan "kandidat ini sudah sampai tahapan
+mana?" dengan membaca kombinasi kolom M sampai W sekaligus (bukan cuma satu
+kolom `status`). Dipakai oleh:
+- **Screening card** (`js/screening.js`) — badge "Tahapan Saat Ini".
+- **Database & Arsip** (`js/database.js`) — badge kolom "Status" (menggantikan
+  if/else manual yang sebelumnya terpisah dan berisiko tidak sinkron).
+
+Mengembalikan `{ step, tone, label, detail }` — `tone` dipetakan ke kombinasi
+class Tailwind lewat `stageToneClasses(tone)`, sengaja memakai kombinasi yang
+SUDAH punya override kontras dark-mode (lihat `docs/CHANGELOG.md` bug #1),
+supaya badge tahapan otomatis ikut terbaca jelas di dark mode.
 
 ## Kontrak API
 
@@ -94,6 +125,43 @@ mengirim `fullAddress` sungguhan.
 - `updates` adalah object partial, mis. `{ status: 'HIRED' }` atau
   `{ screeningAwal: 'SHORTLIST' }` atau
   `{ status: 'INTERVIEW', interviewDate: '2026-09-10' }`.
+
+## Logika Dashboard (kolom M & V)
+
+`renderDashboardMetrics()` (`js/dashboard.js`) menghitung 4 kartu metrik dari
+**seluruh isi `globalCandidates`** (bukan subset yang difilter):
+
+- **Total Pelamar** = jumlah seluruh baris di sheet.
+- **Shortlisted** = jumlah kandidat dengan kolom **M** (`screeningAwal`) =
+  `SHORTLIST` — terlepas dari kolom V sudah diisi atau belum.
+- **Masih Proses** = subset Shortlisted di atas yang kolom **V** (`status`)
+  **belum** `HIRED` dan **belum** `REJECTED` (masih berjalan di tahap
+  manapun: belum WA, menunggu CV, review, atau interview).
+- **Diterima** = jumlah kandidat dengan kolom **V** (`status`) = `HIRED`.
+
+Ini adalah **keputusan desain** hasil interpretasi permintaan user terhadap
+makna kolom M & V — bukan sesuatu yang bisa "salah/benar" secara teknis,
+tapi bisa saja perlu disesuaikan lagi kalau ternyata maknanya berbeda dari
+yang dimaksud pemilik proses rekrutmen. Ubah langsung di
+`renderDashboardMetrics()` bila perlu, dan perbarui bagian ini.
+
+## Logika Pipeline / Kanban (gerbang masuk & sub-tahap)
+
+**PERBAIKAN PENTING** (lihat `docs/CHANGELOG.md`): sebelumnya `renderKanbanBoard()`
+(`js/pipeline.js`) memakai kolom **V** (`status`) sebagai satu-satunya
+penentu kolom kanban, dengan fallback ke kolom "Shortlist (Belum WA)" untuk
+status apa pun yang tidak cocok — **termasuk status kosong**. Karena
+mayoritas baris di sheet nyata memang punya kolom V kosong (V baru diisi
+manual lewat tombol di app ini), efeknya SEMUA kandidat dengan V kosong —
+termasuk yang sudah REJECTED/SKIP di kolom M — ikut masuk ke kolom
+Shortlist, membanjiri kolom itu dengan data yang tidak relevan.
+
+Sekarang gerbang masuk Kanban adalah kolom **M** (`screeningAwal` harus
+`SHORTLIST`); sub-kolom (Menunggu Form/CV, Review CV, Interview, Hired)
+ditentukan dari kolom **V** seperti sebelumnya, dengan V kosong pada
+kandidat SHORTLIST otomatis masuk sub-kolom "Shortlist (Belum WA)" (makna
+aslinya). Kandidat dengan V = `REJECTED` dikeluarkan dari Kanban (dianggap
+sudah final, cukup terlihat di Database & Arsip).
 
 ## Pola UI: Optimistic Update
 

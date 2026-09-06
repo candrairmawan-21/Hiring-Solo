@@ -82,6 +82,12 @@ function renderScreeningCard(list) {
     const candidateStatus = candidate.status || 'RAW';
     const candidateScreeningAwal = (candidate.screeningAwal || '').toString().trim().toUpperCase();
     const candidateExperience = candidate.experience || 'Tidak ada catatan';
+    // PERBAIKAN (permintaan user, poin 2 & 3): tahapan kandidat dihitung dari
+    // kombinasi kolom M-W lewat fungsi bersama getCandidateStage() (js/api.js),
+    // supaya konsisten dengan badge status yang juga dipakai di tabel Database.
+    const candidateStage = (typeof getCandidateStage === 'function')
+        ? getCandidateStage(candidate)
+        : { tone: 'slate', label: candidateStatus, detail: '' };
 
     // Kolom M "Screening Awal":
     // - kosong => section disembunyikan
@@ -145,7 +151,13 @@ function renderScreeningCard(list) {
                     </div>
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">No WhatsApp</p>
-                        <p class="text-slate-700 font-semibold mt-1"><i class="fa-brands fa-whatsapp text-emerald-500 mr-1.5"></i> ${candidatePhone}</p>
+                        <!-- PERBAIKAN (permintaan user, poin 3): nomor WA sekarang bisa di-copy,
+                             sama seperti di Pipeline (link WA) & Database (tombol copy). Sebelumnya
+                             cuma teks statis yang tidak bisa diklik sama sekali. -->
+                        <button type="button" onclick="copyWaLink('${candidatePhone}')" class="text-slate-700 font-semibold mt-1 inline-flex items-center gap-1.5 hover:text-emerald-600 transition-colors cursor-pointer group" title="Salin link wa.me">
+                            <i class="fa-brands fa-whatsapp text-emerald-500"></i> ${candidatePhone}
+                            <i class="fa-regular fa-copy text-slate-300 group-hover:text-emerald-500 text-xs"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -179,9 +191,16 @@ function renderScreeningCard(list) {
                 
                 ${screeningProgressCard}
 
-                <div class="mt-4 flex items-center justify-between bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 shadow-inner">
-                    <span class="text-xs font-bold text-blue-800">Status Hiring:</span>
-                    <span class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-bold shadow-sm">${candidateStatus}</span>
+                <!-- PERBAIKAN (permintaan user, poin 2 & 3): sebelumnya bagian ini cuma
+                     menampilkan nilai mentah kolom V "Status Hiring" (mis. "RAW", "HIRED")
+                     tanpa konteks. Sekarang memakai getCandidateStage() (js/api.js) yang
+                     membaca kombinasi kolom M-W agar bisa menunjukkan tahapan senyatanya:
+                     sudah dikirim WA atau belum, CV sudah masuk atau belum, sudah direview,
+                     sudah dijadwalkan/hasil interview, sampai status akhir hired/reject —
+                     bukan cuma "RAW" yang tidak menjelaskan apa-apa. -->
+                <div class="mt-4 flex items-center justify-between ${stageToneClasses(candidateStage.tone)} px-4 py-3 rounded-xl shadow-inner">
+                    <span class="text-xs font-bold">Tahapan Saat Ini:</span>
+                    <span class="text-xs font-bold text-right">${candidateStage.label}${candidateStage.detail ? `<br><span class="font-normal opacity-80">${candidateStage.detail}</span>` : ''}</span>
                 </div>
 
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-4">

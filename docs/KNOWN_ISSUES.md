@@ -48,6 +48,37 @@ dikirim backend saat ini. Fallback ini AMAN dipertahankan, tapi idealnya
 `code.gs` distandarkan mengirim SATU nama field yang konsisten, lalu
 fallback di frontend bisa dihapus. Butuh akses `code.gs` untuk memastikan.
 
+## 3b. Nama field untuk kolom N, O, P, R, T, U, W masih tebakan
+
+Sesi ini menambahkan `getCandidateStage()` (`js/api.js`) yang membaca kolom
+N (Review by), O (Link WA), P (WA CV/status kirim), R (Review CV), T (Hasil
+Interview), U (Remark), dan W (Store Penempatan) — field-field ini
+**sebelumnya sama sekali tidak dipakai** di frontend manapun. Karena
+`code.gs` tidak ada di repo, nama field JS untuk kolom-kolom ini adalah
+**tebakan** dengan beberapa alias fallback (lihat tabel & penjelasan
+lengkap di `docs/ARCHITECTURE.md` § Pemetaan Field). Efek jika tebakan
+meleset: badge "Tahapan Saat Ini" di kartu Screening dan kolom Status di
+Database tetap berfungsi, tapi mungkin **kurang detail** dari seharusnya
+(mis. tidak menyebutkan nama reviewer atau hasil interview) karena field-nya
+tidak terbaca — TIDAK akan menyebabkan error, hanya kurang informatif.
+
+**Yang perlu dilakukan:** begitu `code.gs` tersedia, cocokkan nama field
+asli untuk kolom N/O/P/R/T/U/W, lalu tambahkan sebagai alias pertama di
+`getCandidateStage()` (`js/api.js`) — jangan hapus alias lama, cukup
+tambahkan di depan supaya lebih diprioritaskan.
+
+Satu hal lagi yang perlu diputuskan: kolom **O (Link WA)** tampaknya sudah
+berisi link wa.me + pesan siap kirim yang dibuat backend, tapi kolom ini
+**belum dipakai sama sekali** — app masih membuat link WA-nya sendiri lewat
+`generateWhatsAppLink()` (`js/pipeline.js`) dengan template pesan yang
+di-hardcode di frontend. Kalau pesan di kolom O ini dimaksudkan sebagai
+sumber kebenaran (single source of truth) untuk isi pesan WA — misalnya
+supaya recruiter bisa mengubah template pesan lewat Sheet tanpa deploy
+ulang kode — sebaiknya `generateWhatsAppLink()` diganti untuk memakai
+`candidate.waLink` (kolom O) langsung saat tersedia, dengan
+`generateWhatsAppLink()` sebagai fallback saja. Ini keputusan produk, bukan
+sekadar teknis, jadi sengaja belum diubah sepihak.
+
 ## 4. Tailwind via CDN
 
 `index.html` memuat Tailwind lewat `<script src="https://cdn.tailwindcss.com">`.
