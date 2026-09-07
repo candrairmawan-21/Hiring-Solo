@@ -37,41 +37,18 @@ function renderKanbanBoard(candidatesArray) {
     };
 
     candidatesArray.forEach(c => {
-        // PERBAIKAN PENTING (permintaan user, poin 2 & 4): sebelumnya Kanban
-        // hanya membaca kolom V "Status Hiring" (c.status), dengan default
-        // fallback ke kolom "shortlist" untuk status apa pun yang tidak cocok
-        // (termasuk STATUS KOSONG). Karena mayoritas baris di sheet master
-        // memang punya kolom V kosong (V baru diisi manual lewat tombol di
-        // app ini), efeknya adalah: SEMUA kandidat dengan V kosong — termasuk
-        // yang di kolom M "Screening Awal" sudah REJECTED/SKIP dan sama
-        // sekali tidak relevan dengan pipeline — ikut ditumpuk ke kolom
-        // "Shortlist (Belum WA)". Kolom itu jadi penuh data yang salah, dan
-        // kandidat yang BENAR shortlist-nya jadi tenggelam.
-        //
-        // Sekarang gerbang masuk Kanban memakai kolom M (screeningAwal):
-        // HANYA kandidat dengan Screening Awal = SHORTLIST yang masuk
-        // pipeline sama sekali. Sub-tahapnya (Menunggu Form/CV, Review CV,
-        // Interview, Hired) tetap ditentukan dari kolom V seperti sebelumnya
-        // — kandidat SHORTLIST dengan V masih kosong otomatis dianggap
-        // "belum WA" (kolom pertama), sesuai makna aslinya.
-        const screeningAwal = (c.screeningAwal || '').toString().trim().toUpperCase();
-        const status = (c.status || '').toString().trim().toUpperCase();
-
-        if (screeningAwal !== 'SHORTLIST') return;
-        if (status === 'REJECTED') return; // sudah final ditolak di tahap manapun, arsipkan ke Database saja
+        if (c.status === 'RAW' || c.status === 'REJECTED') return;
 
         let targetColKey = 'shortlist';
-        if (status === 'WAITING_CV') targetColKey = 'waiting';
-        else if (status === 'REVIEW_CV') targetColKey = 'review';
-        else if (status === 'INTERVIEW') targetColKey = 'interview';
-        else if (status === 'HIRED') targetColKey = 'hired';
+        if (c.status === 'SHORTLIST') targetColKey = 'shortlist';
+        else if (c.status === 'WAITING_CV') targetColKey = 'waiting';
+        else if (c.status === 'REVIEW_CV') targetColKey = 'review';
+        else if (c.status === 'INTERVIEW') targetColKey = 'interview';
+        else if (c.status === 'HIRED') targetColKey = 'hired';
 
-        // PERBAIKAN (permintaan user, poin 4): batas 50 kartu/kolom dihapus —
-        // sebelumnya kandidat ke-51 dst di kolom manapun disembunyikan diam-diam
-        // tanpa indikasi apapun ke user. Volume nyata per tahap pipeline
-        // (bukan total seluruh sheet) biasanya jauh di bawah ini; bila suatu
-        // saat satu kolom benar-benar berisi ribuan kartu dan terasa berat,
-        // pertimbangkan virtualisasi render — dicatat di docs/TASKS.md.
+        // Batasi tampilan maksimal 50 kartu terbaru per kolom untuk menjaga performa web tetap ringan
+        if (counts[targetColKey] >= 50) return;
+
         counts[targetColKey]++;
 
         let cardHTML = `
@@ -83,27 +60,20 @@ function renderKanbanBoard(candidatesArray) {
                 <p class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-phone mr-1"></i> ${c.phone || '-'}</p>
         `;
 
-        // PERBAIKAN: body kartu sekarang mengikuti targetColKey (kolom tempat
-        // kartu ini benar-benar diletakkan), BUKAN c.status secara langsung.
-        // Sebelumnya, kandidat "shortlist" dengan kolom V (status) benar-benar
-        // kosong (kasus paling umum, karena V baru diisi lewat tombol di app
-        // ini) TIDAK PERNAH cocok dengan `c.status === 'SHORTLIST'`, sehingga
-        // kartunya tampil TANPA tombol "Chat WA & Kirim Form" sama sekali —
-        // padahal kartu itu sendiri sudah benar ditempatkan di kolom Shortlist.
-        if (targetColKey === 'shortlist') {
+        if (c.status === 'SHORTLIST') {
             const waLink = generateWhatsAppLink(c.phone);
             cardHTML += `
                 <a href="${waLink}" target="_blank" onclick="updateStatusToWaiting('${c.id}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
                     <i class="fa-brands fa-whatsapp text-sm"></i> Chat WA & Kirim Form
                 </a>
             `;
-        } else if (targetColKey === 'waiting') {
+        } else if (c.status === 'WAITING_CV') {
             cardHTML += `
                 <div class="text-xs text-blue-600 bg-blue-50 p-2.5 rounded-xl text-center font-medium border border-blue-100">
                     <i class="fa-solid fa-clock mr-1"></i> Menunggu Isi G-Form & Upload CV
                 </div>
             `;
-        } else if (targetColKey === 'review') {
+        } else if (c.status === 'REVIEW_CV') {
             cardHTML += `
                 <div class="space-y-2">
                     <a href="${c.cvLink || '#'}" target="_blank" class="block bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 text-center rounded-xl transition">
@@ -115,7 +85,7 @@ function renderKanbanBoard(candidatesArray) {
                     </div>
                 </div>
             `;
-        } else if (targetColKey === 'interview') {
+        } else if (c.status === 'INTERVIEW') {
             cardHTML += `
                 <div class="space-y-2">
                     <p class="text-[11px] text-purple-700 bg-purple-50 p-2.5 rounded-xl font-medium text-center border border-purple-100">
@@ -127,7 +97,7 @@ function renderKanbanBoard(candidatesArray) {
                     </div>
                 </div>
             `;
-        } else if (targetColKey === 'hired') {
+        } else if (c.status === 'HIRED') {
             cardHTML += `
                 <div class="text-xs text-emerald-700 bg-emerald-50 p-2.5 rounded-xl font-semibold text-center border border-emerald-100">
                     <i class="fa-solid fa-check-circle mr-1"></i> Diterima (HIRED)

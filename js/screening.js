@@ -79,15 +79,15 @@ function renderScreeningCard(list) {
     // sebenarnya dipetakan ke field "city" (lihat getHeaderIndices: alamat/domisili -> indices.city).
     // Fallback ke candidate.city ditambahkan agar section ini tidak selalu tampil "-".
     const candidateAddress = candidate.fullAddress || candidate.city || '-';
+    // PERBAIKAN AUDIT: selama fullAddress belum pernah dikirim backend (lihat catatan di atas),
+    // candidateAddress akan SELALU identik dengan candidateCity -- section "Alamat Lengkap" di
+    // bawah jadi menampilkan info yang PERSIS SAMA dengan "Domisili" di atasnya, seolah dua data
+    // berbeda (membingungkan saat screening). Section itu sekarang hanya ditampilkan kalau
+    // fullAddress benar-benar ada DAN nilainya berbeda dari city.
+    const hasDistinctAddress = !!candidate.fullAddress && candidate.fullAddress !== candidate.city;
     const candidateStatus = candidate.status || 'RAW';
     const candidateScreeningAwal = (candidate.screeningAwal || '').toString().trim().toUpperCase();
     const candidateExperience = candidate.experience || 'Tidak ada catatan';
-    // PERBAIKAN (permintaan user, poin 2 & 3): tahapan kandidat dihitung dari
-    // kombinasi kolom M-W lewat fungsi bersama getCandidateStage() (js/api.js),
-    // supaya konsisten dengan badge status yang juga dipakai di tabel Database.
-    const candidateStage = (typeof getCandidateStage === 'function')
-        ? getCandidateStage(candidate)
-        : { tone: 'slate', label: candidateStatus, detail: '' };
 
     // Kolom M "Screening Awal":
     // - kosong => section disembunyikan
@@ -151,13 +151,7 @@ function renderScreeningCard(list) {
                     </div>
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">No WhatsApp</p>
-                        <!-- PERBAIKAN (permintaan user, poin 3): nomor WA sekarang bisa di-copy,
-                             sama seperti di Pipeline (link WA) & Database (tombol copy). Sebelumnya
-                             cuma teks statis yang tidak bisa diklik sama sekali. -->
-                        <button type="button" onclick="copyWaLink('${candidatePhone}')" class="text-slate-700 font-semibold mt-1 inline-flex items-center gap-1.5 hover:text-emerald-600 transition-colors cursor-pointer group" title="Salin link wa.me">
-                            <i class="fa-brands fa-whatsapp text-emerald-500"></i> ${candidatePhone}
-                            <i class="fa-regular fa-copy text-slate-300 group-hover:text-emerald-500 text-xs"></i>
-                        </button>
+                        <p class="text-slate-700 font-semibold mt-1"><i class="fa-brands fa-whatsapp text-emerald-500 mr-1.5"></i> ${candidatePhone}</p>
                     </div>
                 </div>
 
@@ -172,10 +166,11 @@ function renderScreeningCard(list) {
                     </div>
                 </div>
                 
+                ${hasDistinctAddress ? `
                 <div class="mt-4">
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Alamat Lengkap</p>
                     <p class="text-slate-700 text-sm mt-1 leading-relaxed">${candidateAddress}</p>
-                </div>
+                </div>` : ''}
 
                 ${hasCvLink ? `
                 <div class="flex items-center justify-between bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-100">
@@ -191,16 +186,9 @@ function renderScreeningCard(list) {
                 
                 ${screeningProgressCard}
 
-                <!-- PERBAIKAN (permintaan user, poin 2 & 3): sebelumnya bagian ini cuma
-                     menampilkan nilai mentah kolom V "Status Hiring" (mis. "RAW", "HIRED")
-                     tanpa konteks. Sekarang memakai getCandidateStage() (js/api.js) yang
-                     membaca kombinasi kolom M-W agar bisa menunjukkan tahapan senyatanya:
-                     sudah dikirim WA atau belum, CV sudah masuk atau belum, sudah direview,
-                     sudah dijadwalkan/hasil interview, sampai status akhir hired/reject —
-                     bukan cuma "RAW" yang tidak menjelaskan apa-apa. -->
-                <div class="mt-4 flex items-center justify-between ${stageToneClasses(candidateStage.tone)} px-4 py-3 rounded-xl shadow-inner">
-                    <span class="text-xs font-bold">Tahapan Saat Ini:</span>
-                    <span class="text-xs font-bold text-right">${candidateStage.label}${candidateStage.detail ? `<br><span class="font-normal opacity-80">${candidateStage.detail}</span>` : ''}</span>
+                <div class="mt-4 flex items-center justify-between bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 shadow-inner">
+                    <span class="text-xs font-bold text-blue-800">Status Hiring:</span>
+                    <span class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-bold shadow-sm">${candidateStatus}</span>
                 </div>
 
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-4">
@@ -229,9 +217,11 @@ function renderScreeningCard(list) {
  * - SELALU menulis field "screeningAwal" (kolom M "Screening Awal") = aksi yang diambil.
  * - Menulis field "status" (kolom V "Status Hiring") HANYA untuk REJECTED & SHORTLIST — SKIP
  *   tidak mengubah status pipeline, kandidat tetap RAW dan bisa muncul lagi di antrean.
- * - Memakai updateCandidateDataInSheet() dari js/api.js. PERBAIKAN: fungsi itu sekarang
- *   benar-benar membaca response dari backend (result.success) alih-alih hanya berasumsi
- *   optimistic — lihat catatan lengkap & alasannya di js/api.js.
+ * - Memakai updateCandidateDataInSheet() dari js/api.js. CATATAN: karena Google Apps Script
+ *   Web App tidak mengirim header CORS pada response POST, fungsi itu memakai mode "no-cors"
+ *   dan keberhasilannya bersifat OPTIMISTIC (fetch tidak error = dianggap terkirim) — bukan
+ *   konfirmasi tervalidasi dari server, karena response POST tidak bisa dibaca sama sekali
+ *   oleh browser (lihat catatan lengkap di js/api.js).
  *
  * @param {string} candidateId
  * @param {string} action - 'REJECTED' | 'SHORTLIST' | 'SKIP'

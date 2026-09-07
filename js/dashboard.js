@@ -4,33 +4,11 @@
 // ==========================================
 
 function renderDashboardMetrics(candidatesArray) {
-    // PERBAIKAN (permintaan user): metrik dashboard sebelumnya HANYA membaca
-    // kolom V "Status Hiring" — sehingga kandidat yang sudah diputuskan
-    // SHORTLIST di kolom M (Screening Awal) tapi belum "dipindah" ke kanban
-    // Pipeline (kolom V masih kosong) tidak pernah terhitung sebagai
-    // "Shortlisted". Sekarang, sesuai penjelasan struktur sheet master:
-    //   - Total Pelamar   : seluruh baris di sheet (tidak berubah)
-    //   - Shortlisted     : kolom M (Screening Awal) === SHORTLIST — cerminan
-    //                       hasil screening otomatis/awal, terlepas dari sudah
-    //                       masuk pipeline lanjutan atau belum.
-    //   - Masih Proses    : sudah SHORTLIST di kolom M, TAPI kolom V (Status
-    //                       Hiring) belum HIRED dan belum REJECTED — artinya
-    //                       masih berjalan di suatu tahap (kirim WA, isi CV,
-    //                       review, atau interview).
-    //   - Diterima        : kolom V (Status Hiring) === HIRED.
-    // Nilai kolom M/V di data nyata memakai kapitalisasi yang tidak konsisten
-    // (mis. "SHORTLIST" vs "Shortlist", "REJECTED" vs "Reject") — semua
-    // perbandingan di bawah ini menormalkan ke UPPERCASE dulu.
-    const norm = (v) => (v || '').toString().trim().toUpperCase();
-    const isShortlistedAwal = (c) => norm(c.screeningAwal) === 'SHORTLIST';
-    const isHired = (c) => norm(c.status) === 'HIRED';
-    const isFinalRejected = (c) => norm(c.status) === 'REJECTED';
-
-    // 1. Hitung total statistik
+    // 1. Hitung total statistik berdasarkan status
     const totalPelamar = candidatesArray.length;
-    const shortlistedCount = candidatesArray.filter(isShortlistedAwal).length;
-    const processCount = candidatesArray.filter(c => isShortlistedAwal(c) && !isHired(c) && !isFinalRejected(c)).length;
-    const hiredCount = candidatesArray.filter(isHired).length;
+    const shortlistedCount = candidatesArray.filter(c => c.status === 'SHORTLIST' || c.status === 'WAITING_CV' || c.status === 'REVIEW_CV' || c.status === 'INTERVIEW' || c.status === 'HIRED').length;
+    const processCount = candidatesArray.filter(c => c.status === 'WAITING_CV' || c.status === 'REVIEW_CV' || c.status === 'INTERVIEW').length;
+    const hiredCount = candidatesArray.filter(c => c.status === 'HIRED').length;
 
     // 2. Perbarui elemen angka di UI Dashboard jika elemennya tersedia
     const elTotal = document.getElementById('metric-total');
