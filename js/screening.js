@@ -85,17 +85,26 @@ function renderScreeningCard(list) {
     // berbeda (membingungkan saat screening). Section itu sekarang hanya ditampilkan kalau
     // fullAddress benar-benar ada DAN nilainya berbeda dari city.
     const hasDistinctAddress = !!candidate.fullAddress && candidate.fullAddress !== candidate.city;
-    const candidateStatus = candidate.status || 'RAW';
     const candidateScreeningAwal = (candidate.screeningAwal || '').toString().trim().toUpperCase();
     const candidateExperience = candidate.experience || 'Tidak ada catatan';
+
+    // BARU: tahapan kandidat dihitung lewat getCandidateStage() (js/api.js) — membaca
+    // kolom M (Screening Awal) + V (Status Hiring) sekaligus, SATU sumber logika yang sama
+    // dipakai Dashboard/Pipeline/Database. Menggantikan kotak "Status Hiring: RAW" lama
+    // yang hanya menampilkan kolom V mentah (hampir selalu "RAW" dan tidak informatif).
+    const candidateStage = getCandidateStage(candidate);
+
+    // BARU (fitur tambahan untuk kandidat yang sudah shortlist): panel aksi lanjutan
+    // ditampilkan kalau kandidat sudah lolos screening awal, supaya recruiter tidak perlu
+    // pindah tab dulu hanya untuk mengirim WA / menyalin link.
+    const isAlreadyShortlisted = ['SHORTLIST', 'WAITING_CV', 'REVIEW_CV', 'INTERVIEW', 'HIRED'].includes(candidateStage.step);
+    const waLinkForShortlist = (typeof generateWhatsAppLink === 'function' && candidatePhone !== '-')
+        ? generateWhatsAppLink(candidatePhone)
+        : '#';
 
     // Kolom M "Screening Awal":
     // - kosong => section disembunyikan
     // - SHORTLIST / REJECT / SKIP => tampilkan progress terakhir
-    const screeningProgressLabel = candidateScreeningAwal === 'REJECTED'
-        ? 'REJECT'
-        : candidateScreeningAwal;
-
     const hasFinalScreeningDecision =
         candidateScreeningAwal === 'SHORTLIST' ||
         candidateScreeningAwal === 'REJECT' ||
@@ -107,12 +116,87 @@ function renderScreeningCard(list) {
 
     const screeningButtonsDisabledAttr = hasFinalScreeningDecision ? 'disabled' : '';
 
-    const screeningProgressCard = screeningProgressLabel ? `
-        <div class="mt-4 flex items-center justify-between bg-amber-50 px-4 py-3 rounded-xl border border-amber-100 shadow-inner">
-            <span class="text-xs font-bold text-amber-800">Screening Awal (Kolom M):</span>
-            <span class="text-xs bg-amber-600 text-white px-3 py-1 rounded-full font-bold shadow-sm">${screeningProgressLabel}</span>
+    // ===== TIMELINE PROGRESS PROSES YANG SUDAH DILEWATI =====
+    // Menampilkan seluruh rangkaian tahap rekrutmen sekaligus, dengan penanda mana yang
+    // SUDAH dilewati, mana tahap SAAT INI, dan mana yang belum. Berguna terutama saat
+    // recruiter mengubah filter Progress ke "Semua" (atau Shortlist/Reject/Skip) sehingga
+    // kartu bisa menampilkan kandidat yang sudah berjalan jauh — tanpa timeline ini,
+    // recruiter tidak punya cara tahu sejauh mana kandidat tsb sudah diproses.
+    //
+    // Urutan tahap mengikuti alur nyata: Screening -> WA/Kirim Form -> CV Masuk ->
+    // Review CV -> Interview -> Hasil akhir. Sumber kebenarannya getCandidateStage()
+    // (js/api.js) supaya konsisten dengan Dashboard/Pipeline/Database.
+    const STAGE_ORDER = ['RAW', 'SHORTLIST', 'WAITING_CV', 'REVIEW_CV', 'INTERVIEW', 'HIRED'];
+    const TIMELINE_STEPS = [
+        { key: 'RAW',        label: 'Pelamar Masuk',  icon: 'fa-inbox' },
+        { key: 'SHORTLIST',  label: 'Screening Awal', icon: 'fa-user-check' },
+        { key: 'WAITING_CV', label: 'WA & Form',      icon: 'fa-whatsapp', brand: true },
+        { key: 'REVIEW_CV',  label: 'Review CV',      icon: 'fa-file-lines' },
+        { key: 'INTERVIEW',  label: 'Interview',      icon: 'fa-comments' },
+        { key: 'HIRED',      label: 'Hired',          icon: 'fa-award' }
+    ];
+
+    // Kandidat yang keluar dari alur (Reject/Skip) tidak punya posisi di STAGE_ORDER,
+    // jadi ditangani terpisah sebagai timeline yang terhenti.
+    const isOffTrack = candidateStage.step === 'REJECTED' || candidateStage.step === 'SKIP';
+    const currentStageIndex = STAGE_ORDER.indexOf(candidateStage.step);
+
+    const timelineHTML = TIMELINE_STEPS.map((step, i) => {
+        const stepIndex = STAGE_ORDER.indexOf(step.key);
+        let state;
+        if (isOffTrack) {
+            // Untuk Reject: tahap "Pelamar Masuk" & "Screening Awal" tetap terhitung
+            // sudah dilewati (memang sudah discreening, hasilnya reject).
+            // Untuk Skip: hanya "Pelamar Masuk" yang dilewati.
+            const passedUntil = candidateStage.step === 'REJECTED' ? 1 : 0;
+            state = stepIndex <= passedUntil ? 'done' : 'todo';
+        } else if (stepIndex < currentStageIndex) {
+            state = 'done';
+        } else if (stepIndex === currentStageIndex) {
+            state = 'current';
+        } else {
+            state = 'todo';
+        }
+
+        const dotClass = {
+            done:    'bg-emerald-500 text-white border-emerald-500',
+            current: 'bg-blue-600 text-white border-blue-600 ring-4 ring-blue-100',
+            todo:    'bg-white text-slate-300 border-slate-200'
+        }[state];
+        const labelClass = {
+            done:    'text-emerald-700 font-bold',
+            current: 'text-blue-700 font-extrabold',
+            todo:    'text-slate-400 font-semibold'
+        }[state];
+        // Garis penghubung antar-tahap: hijau kalau tahap sebelum ini sudah dilewati.
+        const connector = i === 0 ? '' : `<div class="flex-1 h-0.5 ${state === 'todo' ? 'bg-slate-200' : 'bg-emerald-400'} mx-0.5"></div>`;
+        const iconPrefix = step.brand ? 'fa-brands' : 'fa-solid';
+        const iconHTML = state === 'done'
+            ? '<i class="fa-solid fa-check text-[10px]"></i>'
+            : `<i class="${iconPrefix} ${step.icon} text-[10px]"></i>`;
+
+        return `
+            ${connector}
+            <div class="flex flex-col items-center gap-1 shrink-0" title="${step.label}">
+                <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center ${dotClass}">${iconHTML}</div>
+                <span class="text-[9px] leading-tight text-center max-w-[52px] ${labelClass}">${step.label}</span>
+            </div>
+        `;
+    }).join('');
+
+    const offTrackNotice = isOffTrack ? `
+        <div class="mt-2.5 text-[10px] font-bold text-center px-3 py-1.5 rounded-lg ${candidateStage.step === 'REJECTED' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}">
+            <i class="fa-solid ${candidateStage.step === 'REJECTED' ? 'fa-circle-xmark' : 'fa-forward'} mr-1"></i>
+            ${candidateStage.step === 'REJECTED' ? 'Proses dihentikan — kandidat ditolak pada tahap screening' : 'Dilewati sementara — kandidat akan muncul kembali di antrean'}
+        </div>` : '';
+
+    const screeningProgressCard = `
+        <div class="mt-4 bg-slate-50 px-4 py-3.5 rounded-xl border border-slate-200">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Progress Proses Kandidat</p>
+            <div class="flex items-start justify-between">${timelineHTML}</div>
+            ${offTrackNotice}
         </div>
-    ` : '';
+    `;
     // Kolom Q "Link CV" (field: cvLink dari code.gs). Di Sheet, kolom ini berisi formula
     // HYPERLINK() dengan teks tampilan "Lihat CV" — Apps Script getValues() hanya membaca teks
     // tampilan tsb, bukan URL aslinya. Tombol ditampilkan HANYA jika sel terisi & bukan
@@ -151,7 +235,11 @@ function renderScreeningCard(list) {
                     </div>
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">No WhatsApp</p>
-                        <p class="text-slate-700 font-semibold mt-1"><i class="fa-brands fa-whatsapp text-emerald-500 mr-1.5"></i> ${candidatePhone}</p>
+                        <button onclick="copyWaLink('${candidatePhone}')" class="mt-1 inline-flex items-center gap-1.5 text-slate-700 font-semibold hover:text-emerald-600 transition-colors cursor-pointer group" title="Klik untuk menyalin link wa.me + pesan siap kirim">
+                            <i class="fa-brands fa-whatsapp text-emerald-500"></i>
+                            <span>${candidatePhone}</span>
+                            <i class="fa-solid fa-copy text-[10px] text-slate-300 group-hover:text-emerald-500"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -186,10 +274,35 @@ function renderScreeningCard(list) {
                 
                 ${screeningProgressCard}
 
-                <div class="mt-4 flex items-center justify-between bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 shadow-inner">
-                    <span class="text-xs font-bold text-blue-800">Status Hiring:</span>
-                    <span class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-bold shadow-sm">${candidateStatus}</span>
+                <div class="mt-4 flex items-center justify-between bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 shadow-inner">
+                    <div>
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tahapan Saat Ini</span>
+                        <p class="text-[11px] text-slate-500 mt-0.5">${candidateStage.detail}</p>
+                    </div>
+                    <span class="${stageToneClasses(candidateStage.tone)} text-xs px-3 py-1.5 rounded-full font-bold shadow-sm whitespace-nowrap">${candidateStage.label}</span>
                 </div>
+
+                ${isAlreadyShortlisted ? `
+                <div class="mt-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2.5">
+                    <p class="text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                        <i class="fa-solid fa-circle-check mr-1"></i> Kandidat Sudah Shortlist — Aksi Lanjutan
+                    </p>
+                    <p class="text-[11px] text-emerald-700 leading-relaxed">
+                        Kandidat ini sudah lolos screening awal. Lanjutkan prosesnya lewat tombol di bawah,
+                        atau kelola seluruh kandidat shortlist sekaligus di tab <b>Pipeline &amp; WA</b>.
+                    </p>
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <a href="${waLinkForShortlist}" target="_blank" rel="noopener noreferrer" onclick="advanceShortlistedToWaiting('${candidateId}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+                            <i class="fa-brands fa-whatsapp"></i> Chat WA &amp; Kirim Form
+                        </a>
+                        <button onclick="copyWaLink('${candidatePhone}')" class="bg-white hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
+                            <i class="fa-solid fa-copy mr-1"></i> Copy Link WA
+                        </button>
+                    </div>
+                    <button onclick="switchTab('pipeline')" class="w-full bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 text-xs font-bold py-2 rounded-xl transition cursor-pointer">
+                        <i class="fa-solid fa-diagram-project mr-1"></i> Buka di Pipeline
+                    </button>
+                </div>` : ''}
 
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-4">
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Pengalaman / Keterangan</p>
@@ -210,6 +323,26 @@ function renderScreeningCard(list) {
             </div>
         </div>
     `;
+}
+
+/**
+ * BARU: dipakai panel "Aksi Lanjutan" pada kartu kandidat yang sudah shortlist.
+ * Saat recruiter klik "Chat WA & Kirim Form" dari kartu screening, status pipeline
+ * (kolom V) dimajukan ke WAITING_CV — perilaku yang sama dengan tombol serupa di tab
+ * Pipeline, supaya kedua tempat tidak menghasilkan state yang berbeda.
+ */
+async function advanceShortlistedToWaiting(candidateId) {
+    if (typeof globalCandidates !== 'undefined') {
+        const target = globalCandidates.find(c => c.id === candidateId);
+        if (target) target.status = 'WAITING_CV';
+    }
+    if (typeof showToast === 'function') showToast('Status diperbarui: Menunggu G-Form & CV.', 'info');
+    if (typeof renderScreeningCard === 'function' && typeof filteredScreeningList !== 'undefined') {
+        renderScreeningCard(filteredScreeningList);
+    }
+    if (typeof updateCandidateDataInSheet === 'function') {
+        await updateCandidateDataInSheet(candidateId, { status: 'WAITING_CV' });
+    }
 }
 
 /**
