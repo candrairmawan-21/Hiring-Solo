@@ -46,13 +46,23 @@ membaca kode backend itu sendiri. Kalau kamu (AI lain) diminta memperbaiki
 sesuatu yang menyentuh backend, **minta user upload `code.gs` juga** — jangan
 menebak isinya.
 
-Baca lebih detail di:
-- **`ARSITEKTUR.md`** — struktur file, alur data, penjelasan tiap file JS.
-- **`KAMUS_DATA.md`** — nama field kandidat ↔ kolom Google Sheet apa, sudah
-  dikumpulkan dari komentar yang bertebaran di banyak file jadi satu tempat.
-- **`STATUS_DAN_ISU.md`** — bug yang sudah diperbaiki, isu yang masih terbuka/
-  perlu verifikasi manual, dan saran perbaikan yang belum dikerjakan (butuh
-  keputusan/konfirmasi user dulu).
+Baca lebih detail di (urutan yang disarankan):
+1. **`ARCHITECTURE.md`** — struktur file, alur data, kontrak API, dan tabel
+   **Pemetaan Field** (nama field JS ↔ kolom A–W Google Sheet). Baca bagian
+   Pemetaan Field sebelum menyentuh nama field apa pun.
+2. **`CHANGELOG.md`** — apa yang sudah diperbaiki beserta root cause-nya.
+   **Baca bagian paling atas dulu**: ada koreksi penting bahwa entri
+   "Revisi #2" di versi dokumen sebelumnya mengklaim banyak hal selesai
+   padahal kodenya tidak pernah diubah.
+3. **`KNOWN_ISSUES.md`** — bug/celah yang **belum** diperbaiki karena butuh
+   `code.gs` atau keputusan produk.
+4. **`TASKS.md`** — backlog & prioritas berikutnya.
+5. **`AGENT_GUIDE.md`** — aturan kerja & skrip verifikasi cepat.
+
+⚠️ **Jangan percaya CHANGELOG/TASKS sebagai status sebenarnya.** Riwayat proyek
+ini menunjukkan dokumentasi pernah ditulis seolah pekerjaan selesai padahal
+kodenya tidak berubah. **Selalu `grep` ke kode** untuk membuktikan sebuah
+perbaikan benar-benar ada sebelum menganggapnya beres.
 
 ## Cara Kerja dengan User Proyek Ini
 
