@@ -145,38 +145,40 @@ function check(label, ok, extra = '') {
     check('Nomor WA berupa tombol copy', sc.html.includes('copyWaLink('));
 
     console.log('\n--- Screening: default filter & urutan antrean ---');
-    // mockData: hanya id 1 (Budi) yang belum pernah discreening (screeningAwal kosong);
-    // id 7 REJECT & id 8 SKIP; sisanya sudah SHORTLIST/lanjut.
-    // Default filter = hanya RAW + SKIP -> harus 2 kandidat (Budi, Dewi).
-    check('Default hanya menampilkan yang belum discreening (+SKIP)', sc.queue === '2', 'queue=' + sc.queue);
+    // mockData: hanya id 1 (Budi) yang benar-benar belum discreening (screeningAwal
+    // kosong). id 8 (Dewi) berstatus SKIP -- kini TAG TERPISAH dari "Belum di Screening"
+    // (lihat CHANGELOG "Redesain Slicer Progress"), jadi TIDAK ikut default.
+    check('Default hanya menampilkan yang benar-benar belum discreening', sc.queue === '1', 'queue=' + sc.queue);
     check('Kandidat yang sudah Shortlist tidak muncul di default', !sc.names.includes('Sari Dewi'), sc.names.join(','));
-    // Urutan dibalik: baris paling bawah Sheet (Dewi Lestari, id 8) harus pertama.
-    check('Urutan: data terbaru (baris bawah) tampil lebih dulu', sc.names[0] === 'Dewi Lestari', sc.names.join(' > '));
+    check('Default menampilkan kandidat yang kolom M-nya kosong', sc.names[0] === 'Budi Santoso', sc.names.join(' > '));
 
     console.log('\n--- Screening: timeline progress ---');
     check('Timeline "Progress Proses Kandidat" tampil', sc.html.includes('Progress Proses Kandidat'));
     const timelineSteps = ['Pelamar Masuk', 'Screening Awal', 'WA &amp; Form', 'Review CV', 'Interview', 'Hired']
         .filter(s => sc.html.includes(s)).length;
     check('Semua 6 tahap tampil di timeline', timelineSteps === 6, 'ketemu ' + timelineSteps);
-    // Catatan: kartu aktif di default filter adalah kandidat SKIP (off-track), yang
-    // memang TIDAK punya tahap "saat ini" — timeline-nya terhenti dan menampilkan notice
-    // "Dilewati sementara". Jadi yang dicek di sini adalah notice off-track tsb.
+    // Default queue sekarang murni kandidat berkolom-M-kosong (Budi Santoso, RAW) --
+    // selalu on-track dengan tepat 1 tahap "saat ini".
     const ringCount = (sc.html.match(/ring-blue-100/g) || []).length;
-    const isOffTrackCard = sc.html.includes('Dilewati sementara') || sc.html.includes('Proses dihentikan');
-    check('Timeline konsisten: off-track tanpa tahap "saat ini", on-track tepat 1',
-        isOffTrackCard ? ringCount === 0 : ringCount === 1,
-        `offTrack=${isOffTrackCard} ring=${ringCount}`);
+    check('Timeline: tepat 1 tahap "saat ini" untuk kandidat RAW', ringCount === 1, String(ringCount));
+
+    console.log('\n--- Screening: urutan antrean (data terbaru dulu) ---');
+    await page.click('#slicer-filter-progress summary').catch(() => {});
+    await page.waitForTimeout(200);
+    await page.selectOption('#filter-progress', ['ALL_STAGES'], { force: true }).catch(() => {});
+    await page.waitForTimeout(500);
+    const ordered = await page.evaluate(() => filteredScreeningList.map(c => c.name));
+    check('Urutan: data terbaru (baris bawah Sheet) tampil lebih dulu', ordered[0] === 'Dewi Lestari', ordered.join(' > '));
+    check('Data paling lama (baris atas Sheet) tampil terakhir', ordered[ordered.length - 1] === 'Budi Santoso', ordered.join(' > '));
 
     console.log('\n--- Screening: filter progress "Shortlist" menghasilkan data ---');
     // Regresi yang pernah terjadi: gerbang tahap keras membuat filter ini selalu kosong.
-    await page.click('#slicer-filter-progress summary').catch(() => {});
-    await page.waitForTimeout(200);
     await page.selectOption('#filter-progress', ['SHORTLIST'], { force: true }).catch(() => {});
     await page.waitForTimeout(600);
     const slQueue = await page.evaluate(() => document.getElementById('queue-count')?.innerText);
     check('Filter Shortlist menampilkan kandidat (bukan 0)', slQueue !== '0', 'queue=' + slQueue);
     // Kembalikan ke default supaya pengujian tema di bawah tidak terpengaruh.
-    await page.selectOption('#filter-progress', ['all'], { force: true }).catch(() => {});
+    await page.selectOption('#filter-progress', ['BELUM'], { force: true }).catch(() => {});
     await page.waitForTimeout(400);
 
     console.log('\n--- Tema Day/Night ---');
