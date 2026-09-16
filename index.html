@@ -2274,11 +2274,21 @@ body.theme-night #active-card .text-blue-700{color:#93c5fd!important;}
     <summary><span>Slicer Progress</span><span class="slicer-selected-count" id="slicer-count-filter-progress"></span></summary>
     <div class="slicer-options">
         <select id="filter-progress" multiple onchange="handleSlicerChange('slicer-filter-progress')" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
-                                <option value="all" selected>Semua Progress</option>
-                                <option value="BELUM">Belum Discreening</option>
-                                <option value="SHORTLIST">Shortlist</option>
-                                <option value="REJECT">Reject</option>
-                                <option value="SKIP">Skip</option>
+                                <option value="BELUM" selected>Belum di Screening</option>
+                                <optgroup label="Kolom M — Screening Awal">
+                                    <option value="SHORTLIST">Shortlist</option>
+                                    <option value="SKIP">Skip</option>
+                                    <option value="REJECT">Reject</option>
+                                </optgroup>
+                                <optgroup label="Kolom P — Status WA">
+                                    <option value="WA_SENT">Sudah di WA</option>
+                                    <option value="WA_READY">Siap di WA (belum dikirim)</option>
+                                </optgroup>
+                                <optgroup label="Kolom Q — Link CV">
+                                    <option value="CV_LINKED">Sudah Ada Link CV</option>
+                                    <option value="CV_PENDING">Belum Response</option>
+                                </optgroup>
+                                <option value="ALL_STAGES">— Tampilkan Semua Tahap —</option>
                             </select>
     </div>
 </details>
@@ -2707,45 +2717,63 @@ body.theme-night #active-card .text-blue-700{color:#93c5fd!important;}
                     if (!ageFilters.some(range => isAgeInRange(c.age, range))) return false;
                 }
 
-                // --- 6. FILTER PROGRESS (multi-select)
-                // Memakai getCandidateStage() (js/api.js) supaya konsisten dengan
-                // Dashboard/Pipeline/Database — bukan hanya membaca kolom M mentah, karena
-                // kandidat yang sudah maju ke tahap lanjut (Menunggu CV, Review CV,
-                // Interview, Hired) tetap punya kolom M = SHORTLIST.
-                const stageStep = getCandidateStage(c).step;
-                const screeningAwalValue = (c.screeningAwal || '')
-                    .toString()
-                    .trim()
-                    .toUpperCase();
+                // --- 6. FILTER PROGRESS (multi-select) — tag literal per KOLOM SHEET,
+                // bukan gabungan tahap (getCandidateStage). Tiap opsi mencerminkan nilai
+                // MENTAH satu kolom tertentu, supaya recruiter bisa menyaring persis
+                // berdasarkan status administratif yang tertulis di Sheet:
+                //   - Belum di Screening / Shortlist / Skip / Reject -> Kolom M
+                //   - Sudah di WA / Siap di WA                       -> Kolom P
+                //   - Sudah Ada Link CV / Belum Response             -> Kolom Q
+                // Opsi ini bisa TUMPANG TINDIH satu sama lain (mis. kandidat yang sama
+                // bisa cocok "Shortlist" DAN "Sudah di WA" sekaligus) — cocok salah satu
+                // dari filter yang dipilih sudah cukup (logika OR, sama seperti slicer lain).
+                const screeningAwalValue = (c.screeningAwal || '').toString().trim().toUpperCase();
 
-                if (!progressFilters.includes('all')) {
-                    const progressMatched = progressFilters.some(progressFilter => {
+                // Kolom P "WA CV" — ⚠️ nama field BELUM terverifikasi ke code.gs (lihat
+                // docs/ARCHITECTURE.md baris Kolom P), dicoba beberapa kemungkinan nama.
+                const waSentValue = (c.waSent || c.waCv || c.waStatus || '').toString().trim();
+                const isWaSent = waSentValue !== '' && waSentValue.toLowerCase() !== 'belum' && waSentValue.toLowerCase() !== 'belum kirim';
+
+                // Kolom Q "Link CV" — field sudah dipastikan benar (cvLink).
+                const cvLinkValue = (c.cvLink || c.cv || '').toString().trim();
+                const isCvLinked = cvLinkValue !== '' && cvLinkValue.toLowerCase() !== 'belum response';
+
+                if (progressFilters.includes('ALL_STAGES')) {
+                    // Opsi eksplisit "Tampilkan Semua Tahap" — tidak difilter sama sekali,
+                    // dipakai recruiter untuk meninjau progress SEMUA kandidat (termasuk
+                    // yang sudah discreening/di-WA/dst) lewat timeline di kartu screening.
+                } else {
+                    // getMultiSelectValues() balik ke ['all'] kalau user meng-klik-ganda
+                    // sampai tidak ada opsi tersisa terpilih sama sekali — diperlakukan
+                    // sama seperti default "Belum di Screening".
+                    const effectiveFilters = progressFilters.includes('all') ? ['BELUM'] : progressFilters;
+
+                    const progressMatched = effectiveFilters.some(progressFilter => {
                         switch (progressFilter) {
                             case 'BELUM':
-                                // Benar-benar belum pernah disentuh proses screening.
-                                return stageStep === 'RAW';
+                                return screeningAwalValue === '';
                             case 'SHORTLIST':
-                                // Lolos screening awal — TERMASUK yang sudah maju lebih jauh
-                                // (Menunggu CV / Review CV / Interview / Hired), karena
-                                // semuanya bermula dari keputusan Shortlist.
-                                return ['SHORTLIST', 'WAITING_CV', 'REVIEW_CV', 'INTERVIEW', 'HIRED'].includes(stageStep);
-                            case 'REJECT':
-                                return stageStep === 'REJECTED';
+                                return screeningAwalValue === 'SHORTLIST';
                             case 'SKIP':
-                                return stageStep === 'SKIP';
+                                return screeningAwalValue === 'SKIP';
+                            case 'REJECT':
+                                return screeningAwalValue === 'REJECT' || screeningAwalValue === 'REJECTED';
+                            case 'WA_SENT':
+                                return isWaSent;
+                            case 'WA_READY':
+                                // Sudah diputuskan Shortlist di kolom M, tapi kolom P masih
+                                // kosong (WA belum dikirim) — "siap dikirim, tinggal aksi".
+                                return screeningAwalValue === 'SHORTLIST' && !isWaSent;
+                            case 'CV_LINKED':
+                                return isCvLinked;
+                            case 'CV_PENDING':
+                                return !isCvLinked;
                             default:
-                                return true;
+                                return false;
                         }
                     });
 
                     if (!progressMatched) return false;
-                } else {
-                    // DEFAULT (filter = "Semua"/belum diubah user): tampilkan HANYA kandidat
-                    // yang belum pernah discreening sama sekali — ini alur kerja utama tab
-                    // Screening (memproses tumpukan pelamar baru), sesuai permintaan.
-                    // Kandidat SKIP ikut dimunculkan kembali karena "skip" bermakna
-                    // "lewati sementara", bukan keputusan final.
-                    if (stageStep !== 'RAW' && stageStep !== 'SKIP') return false;
                 }
 
                 return true;
