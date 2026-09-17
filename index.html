@@ -2048,6 +2048,25 @@ body.theme-night .bg-blue-100.text-blue-800{background:rgba(12,44,90,.60)!import
 body.theme-night .bg-amber-100.text-amber-800{background:rgba(69,39,3,.60)!important;color:#fcd34d!important;}
 body.theme-night .bg-slate-100.text-slate-700{background:rgba(15,32,47,.75)!important;color:#cbd5e1!important;}
 
+/* ---- 4. POLISH: optgroup pada slicer Progress -------------------------
+   Styling native <optgroup>/<option> sangat terbatas lintas-browser, tapi
+   minimal label grup dibuat kapital-kecil + huruf lebih tegas supaya terasa
+   sebagai "kategori", bukan opsi biasa yang tercampur. */
+#filter-progress optgroup{
+    font-style:normal;
+    font-weight:800;
+    font-size:11px;
+    letter-spacing:.02em;
+    color:#8a6b5c;
+    background:#fbf3ee;
+}
+#filter-progress option{
+    font-weight:500;
+    padding:4px 2px;
+}
+body.theme-night #filter-progress optgroup{color:#e8b98e;background:#1c1310;}
+body.theme-night #filter-progress option{background:#12181f;color:#dbe7ec;}
+
 /* ---- 3. TIMELINE PROGRESS di kartu Screening --------------------------
    Timeline memakai warna terang (bg-white/bg-slate-50, border slate) yang
    didesain untuk tema Day. Di Night, latar & garisnya perlu digelapkan
@@ -2219,12 +2238,11 @@ body.theme-night #active-card .text-blue-700{color:#93c5fd!important;}
     <summary><span>Slicer Domisili</span><span class="slicer-selected-count" id="slicer-count-filter-city"></span></summary>
     <div class="slicer-options">
         <select id="filter-city" multiple onchange="handleSlicerChange('slicer-filter-city')" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
-                                <option value="all" selected>Semua Domisili (Solo Raya)</option>
-                                <option value="Surakarta">Surakarta</option>
-                                <option value="Boyolali">Boyolali</option>
-                                <option value="Sukoharjo">Sukoharjo</option>
-                                <option value="Karanganyar">Karanganyar</option>
-                                <option value="Sragen">Sragen</option>
+                                <!-- Opsi kota di-generate OTOMATIS dari data kandidat oleh
+                                     populateCityFilterOptions() (dipanggil di loadAllData()),
+                                     bukan hardcode -- lihat docs/CHANGELOG.md. Placeholder di
+                                     bawah hanya tampil sekilas sebelum data pertama masuk. -->
+                                <option value="all" selected>Memuat daftar domisili...</option>
                             </select>
     </div>
 </details>
@@ -2274,21 +2292,21 @@ body.theme-night #active-card .text-blue-700{color:#93c5fd!important;}
     <summary><span>Slicer Progress</span><span class="slicer-selected-count" id="slicer-count-filter-progress"></span></summary>
     <div class="slicer-options">
         <select id="filter-progress" multiple onchange="handleSlicerChange('slicer-filter-progress')" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
-                                <option value="BELUM" selected>Belum di Screening</option>
-                                <optgroup label="Kolom M — Screening Awal">
-                                    <option value="SHORTLIST">Shortlist</option>
-                                    <option value="SKIP">Skip</option>
-                                    <option value="REJECT">Reject</option>
+                                <option value="BELUM" selected>🆕 Belum di Screening</option>
+                                <optgroup label="Hasil Screening Awal">
+                                    <option value="SHORTLIST">✅ Shortlist</option>
+                                    <option value="SKIP">⏭️ Skip (dilewati sementara)</option>
+                                    <option value="REJECT">❌ Reject</option>
                                 </optgroup>
-                                <optgroup label="Kolom P — Status WA">
-                                    <option value="WA_SENT">Sudah di WA</option>
-                                    <option value="WA_READY">Siap di WA (belum dikirim)</option>
+                                <optgroup label="Status WhatsApp &amp; Form">
+                                    <option value="WA_SENT">💬 Sudah Dikirim WA</option>
+                                    <option value="WA_READY">📤 Siap Dikirim WA</option>
                                 </optgroup>
-                                <optgroup label="Kolom Q — Link CV">
-                                    <option value="CV_LINKED">Sudah Ada Link CV</option>
-                                    <option value="CV_PENDING">Belum Response</option>
+                                <optgroup label="Kelengkapan CV">
+                                    <option value="CV_LINKED">📄 CV Sudah Masuk</option>
+                                    <option value="CV_PENDING">⏳ CV Belum Direspon</option>
                                 </optgroup>
-                                <option value="ALL_STAGES">— Tampilkan Semua Tahap —</option>
+                                <option value="ALL_STAGES">🔎 Tampilkan Semua Tahap</option>
                             </select>
     </div>
 </details>
@@ -2825,7 +2843,14 @@ body.theme-night #active-card .text-blue-700{color:#93c5fd!important;}
         // Fungsi Load Data Utama dari Google Sheet via API
         async function loadAllData() {
             globalCandidates = await fetchCandidatesFromSheet();
-            
+
+            // BARU: opsi slicer Domisili sebelumnya di-hardcode 5 kota Solo Raya di HTML —
+            // tidak mewakili kota sesungguhnya yang ada di database (kandidat dari luar
+            // 5 kota itu jadi tidak bisa difilter sama sekali, dan kalau salah satu dari
+            // 5 kota itu ternyata kosong datanya, opsinya tetap nongol tanpa gunanya).
+            // Sekarang di-generate otomatis dari data kandidat yang benar-benar masuk.
+            populateCityFilterOptions();
+
             // Refresh view yang sedang aktif
             const activeTab = document.querySelector('main > section:not(.hidden)');
             if (activeTab) {
@@ -2834,6 +2859,56 @@ body.theme-night #active-card .text-blue-700{color:#93c5fd!important;}
                 if (activeTab.id === 'view-pipeline') renderKanbanBoard(globalCandidates);
                 if (activeTab.id === 'view-database') refreshDatabaseView();
             }
+        }
+
+        /**
+         * Ekstrak daftar kota UNIK dari master database (globalCandidates) untuk mengisi
+         * opsi slicer Domisili secara dinamis — menggantikan 5 opsi hardcode yang tidak
+         * ikut menyesuaikan diri kalau ada kandidat dari kota lain.
+         *
+         * Sumber nilai: field yang SAMA PERSIS dipakai logika filter Domisili
+         * (`c.city || c.fullAddress`, lihat blok FILTER DOMISILI di initScreeningQueue)
+         * — supaya opsi yang tampil selalu konsisten dengan apa yang sebenarnya bisa
+         * dicocokkan filternya. Kalau kolom G ("Alamat Lengkap") berisi alamat panjang
+         * (bukan cuma nama kota polos), setiap variasi alamat akan muncul sebagai opsi
+         * terpisah — lihat catatan "Keterbatasan" di bawah untuk solusinya.
+         *
+         * Dipanggil ulang setiap loadAllData() (termasuk auto-refresh 30 detik), supaya
+         * kota baru yang baru saja masuk otomatis muncul tanpa perlu reload manual.
+         * Seleksi user yang sedang aktif DIPERTAHANKAN selama opsinya masih ada.
+         */
+        function populateCityFilterOptions() {
+            const select = document.getElementById('filter-city');
+            if (!select || !Array.isArray(globalCandidates)) return;
+
+            // Simpan seleksi user SEBELUM select di-render ulang, supaya tidak
+            // ke-reset ke "Semua" tiap kali auto-refresh jalan di tengah user memfilter.
+            const previousSelection = Array.from(select.selectedOptions).map(o => o.value);
+
+            const uniqueCities = new Set();
+            globalCandidates.forEach(c => {
+                const raw = (c.city || c.fullAddress || '').toString().trim();
+                if (raw) uniqueCities.add(raw);
+            });
+
+            const sortedCities = Array.from(uniqueCities).sort((a, b) => a.localeCompare(b, 'id'));
+
+            const escapeAttr = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+            select.innerHTML = `<option value="all">Semua Domisili</option>` +
+                sortedCities.map(city => `<option value="${escapeAttr(city)}">${escapeAttr(city)}</option>`).join('');
+
+            // Pulihkan seleksi sebelumnya kalau opsinya masih tersedia (mis. "Surakarta"
+            // masih ada di data terbaru); kalau tidak ada satu pun yang cocok lagi
+            // (mis. kota itu sudah tidak ada kandidatnya sama sekali), fallback ke "Semua"
+            // daripada diam-diam membiarkan select tanpa seleksi apa pun.
+            const stillValid = previousSelection.filter(v => v === 'all' || sortedCities.includes(v));
+            if (stillValid.length > 0) {
+                Array.from(select.options).forEach(opt => { opt.selected = stillValid.includes(opt.value); });
+            } else {
+                select.value = 'all';
+            }
+
+            updateSlicerSummary(select);
         }
 
         // Global Keyboard Shortcuts untuk Screening (← Reject, → Shortlist, Space/R Skip)
