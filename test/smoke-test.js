@@ -181,6 +181,41 @@ function check(label, ok, extra = '') {
     await page.selectOption('#filter-progress', ['BELUM'], { force: true }).catch(() => {});
     await page.waitForTimeout(400);
 
+    console.log('\n--- Slicer Domisili: kota di-generate dinamis dari master database ---');
+    // mockData bawaan smoke test ini pakai kota Solo Raya (Surakarta/Boyolali/dst) --
+    // yang penting di sini BUKAN kotanya spesifik, tapi bahwa opsi TIDAK LAGI hardcode
+    // (dulu selalu persis 5 opsi + "Semua" apa pun isi datanya).
+    const cityOptions = await page.evaluate(() =>
+        Array.from(document.getElementById('filter-city').options).map(o => o.value)
+    );
+    const dataCities = [...new Set(mockData.map(c => c.city).filter(Boolean))].sort();
+    check('Opsi kota persis sesuai kota unik di data (+ "Semua")',
+        cityOptions.length === dataCities.length + 1 && cityOptions[0] === 'all',
+        JSON.stringify(cityOptions));
+    check('Tidak ada opsi kota kosong/duplikat', new Set(cityOptions).size === cityOptions.length);
+
+    console.log('\n--- Slicer Progress: label bersih, tanpa jargon "Kolom ..." ---');
+    const progressHTML = await page.evaluate(() => document.getElementById('filter-progress').outerHTML);
+    check('Tidak ada teks "Kolom" yang bocor ke tampilan user', !progressHTML.includes('Kolom'));
+
+    console.log('\n--- Slicer Domisili: kombobox type-able berfungsi ---');
+    await page.click('#slicer-filter-city summary'); await page.waitForTimeout(200);
+    await page.fill('#city-search-input', 'sur'); await page.waitForTimeout(300);
+    const typeaheadResults = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('#city-dropdown-list button')).map(b => b.textContent.trim())
+    );
+    check('Ketik "sur" menyaring daftar kota (typeahead)', typeaheadResults.some(t => t.includes('Surakarta')));
+    await page.click('#city-dropdown-list button:has-text("Surakarta")').catch(() => {});
+    await page.waitForTimeout(400);
+    const cityPanelState = await page.evaluate(() => ({
+        chips: document.getElementById('city-selected-chips')?.textContent || '',
+        panelOpen: document.getElementById('slicer-filter-city')?.open
+    }));
+    check('Chip kota terpilih muncul', cityPanelState.chips.includes('Surakarta'));
+    check('Panel TIDAK auto-close setelah memilih (bisa lanjut pilih kota lain)', cityPanelState.panelOpen === true);
+    await page.click('#city-dropdown-list button:has-text("Semua Domisili")').catch(() => {});
+    await page.waitForTimeout(400);
+
     console.log('\n--- Tema Day/Night ---');
     await page.click('#theme-night'); await page.waitForTimeout(300);
     await page.click('#nav-dashboard'); await page.waitForTimeout(400);

@@ -2067,6 +2067,30 @@ body.theme-night .bg-slate-100.text-slate-700{background:rgba(15,32,47,.75)!impo
 body.theme-night #filter-progress optgroup{color:#e8b98e;background:#1c1310;}
 body.theme-night #filter-progress option{background:#12181f;color:#dbe7ec;}
 
+/* ---- 5. KOMBOBOX TYPE-ABLE: Slicer Domisili ----------------------------
+   Dropdown hasil pencarian pakai position:absolute supaya tidak mendorong
+   layout slicer lain di bawahnya saat terbuka. */
+#city-combobox { position: relative; }
+#city-dropdown-list {
+    position: absolute;
+    left: 0; right: 0;
+    z-index: 30;
+}
+body.theme-night #city-search-input,
+body.theme-night #city-dropdown-list{
+    background:#0f1720!important;
+    border-color:rgba(80,180,205,.25)!important;
+    color:#dbe7ec!important;
+}
+body.theme-night #city-search-input::placeholder{color:#5b7686!important;}
+body.theme-night #city-dropdown-list .divide-slate-100 > *{border-color:rgba(80,180,205,.12)!important;}
+body.theme-night #city-dropdown-list button:hover{background:rgba(80,180,205,.10)!important;}
+body.theme-night #city-selected-chips span{
+    background:rgba(184,92,67,.18)!important;
+    border-color:rgba(184,92,67,.35)!important;
+    color:#f0b79e!important;
+}
+
 /* ---- 3. TIMELINE PROGRESS di kartu Screening --------------------------
    Timeline memakai warna terang (bg-white/bg-slate-50, border slate) yang
    didesain untuk tema Day. Di Night, latar & garisnya perlu digelapkan
@@ -2236,14 +2260,36 @@ body.theme-night #active-card .text-blue-700{color:#93c5fd!important;}
 </details>
                         <details id="slicer-filter-city" class="slicer-dropdown">
     <summary><span>Slicer Domisili</span><span class="slicer-selected-count" id="slicer-count-filter-city"></span></summary>
-    <div class="slicer-options">
-        <select id="filter-city" multiple onchange="handleSlicerChange('slicer-filter-city')" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-slate-50 font-medium cursor-pointer">
-                                <!-- Opsi kota di-generate OTOMATIS dari data kandidat oleh
-                                     populateCityFilterOptions() (dipanggil di loadAllData()),
-                                     bukan hardcode -- lihat docs/CHANGELOG.md. Placeholder di
-                                     bawah hanya tampil sekilas sebelum data pertama masuk. -->
-                                <option value="all" selected>Memuat daftar domisili...</option>
-                            </select>
+    <div class="slicer-options city-combobox" id="city-combobox">
+        <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+            <input type="text" id="city-search-input" autocomplete="off" placeholder="Ketik nama kota, mis. Surakarta..."
+                   oninput="handleCitySearchInput(this.value)"
+                   onfocus="openCityDropdownList()"
+                   class="w-full border border-slate-300 rounded-xl pl-8 pr-8 py-2.5 text-sm focus:ring-2 focus:ring-[#b85c43] outline-none bg-white font-medium" />
+            <button type="button" onclick="clearCityQuery(event)" id="city-search-clear-btn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">
+                <i class="fa-solid fa-circle-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Chip kota yang sedang terpilih. Kosong = berarti "Semua Domisili". -->
+        <div id="city-selected-chips" class="flex flex-wrap gap-1.5 mt-2"></div>
+
+        <!-- Daftar hasil pencarian, muncul saat input fokus/diketik. Isinya di-generate
+             dari opsi <select id="filter-city"> tersembunyi di bawah (yang datanya
+             sendiri di-generate otomatis dari master database, lihat
+             populateCityFilterOptions() di script bawah). -->
+        <div id="city-dropdown-list" class="hidden mt-2 max-h-52 overflow-y-auto border border-slate-200 rounded-xl bg-white shadow-lg divide-y divide-slate-100"></div>
+
+        <!-- Source of truth asli untuk semua logika filter (initScreeningQueue,
+             getMultiSelectValues, dst) TIDAK DIUBAH sama sekali -- UI type-able di atas
+             hanya cara baru untuk mengubah .selected pada <option> di bawah ini. -->
+        <select id="filter-city" multiple class="hidden">
+            <!-- Opsi kota di-generate OTOMATIS dari data kandidat oleh
+                 populateCityFilterOptions() (dipanggil di loadAllData()),
+                 bukan hardcode -- lihat docs/CHANGELOG.md. -->
+            <option value="all" selected>Memuat daftar domisili...</option>
+        </select>
     </div>
 </details>
                         <details id="slicer-filter-age" class="slicer-dropdown">
@@ -2909,7 +2955,190 @@ body.theme-night #active-card .text-blue-700{color:#93c5fd!important;}
             }
 
             updateSlicerSummary(select);
+
+            // Sinkronkan UI kombobox type-able (chip terpilih + daftar dropdown kalau
+            // sedang terbuka) dengan opsi yang baru saja di-generate ulang.
+            renderCityChips();
+            const dropdownList = document.getElementById('city-dropdown-list');
+            if (dropdownList && !dropdownList.classList.contains('hidden')) {
+                renderCityDropdownItems(document.getElementById('city-search-input')?.value || '');
+            }
         }
+
+        /* ==========================================================================
+           SLICER DOMISILI — KOMBOBOX TYPE-ABLE
+           --------------------------------------------------------------------------
+           Native <select multiple> yang lama (mengharuskan Ctrl/Cmd+klik untuk pilih
+           banyak, dan sulit dicari kalau daftar kotanya panjang) diganti kombobox:
+           input teks untuk mencari + daftar hasil yang bisa diklik + chip untuk kota
+           yang sudah dipilih. <select id="filter-city"> ASLI tetap ada (disembunyikan,
+           class="hidden") sebagai SATU-SATUNYA sumber kebenaran status terpilih --
+           semua logika filter lain (initScreeningQueue, getMultiSelectValues, dst)
+           TIDAK PERLU DIUBAH SAMA SEKALI, karena mereka hanya membaca .selectedOptions
+           dari select itu, yang di sini kita atur secara terprogram lewat toggle di bawah.
+
+           Sengaja TIDAK memakai handleSlicerChange() (yang otomatis menutup <details>
+           setelah 120ms) -- untuk kombobox multi-pilih, menutup panel tiap kali user
+           mencentang 1 kota akan sangat mengganggu alur pilih-berkali-kali. Panel
+           kombobox ditutup manual lewat klik di luar area, tombol "Selesai", atau Esc.
+           ========================================================================== */
+
+        function getCityOptionsData() {
+            const select = document.getElementById('filter-city');
+            if (!select) return [];
+            return Array.from(select.options)
+                .filter(opt => opt.value !== 'all')
+                .map(opt => ({ value: opt.value, label: opt.textContent, selected: opt.selected }));
+        }
+
+        function isAllCitiesSelected() {
+            const select = document.getElementById('filter-city');
+            if (!select) return true;
+            const selected = Array.from(select.selectedOptions).map(o => o.value);
+            return selected.length === 0 || selected.includes('all');
+        }
+
+        /** Render chip kota yang sedang terpilih di bawah input pencarian. */
+        function renderCityChips() {
+            const container = document.getElementById('city-selected-chips');
+            if (!container) return;
+
+            if (isAllCitiesSelected()) {
+                container.innerHTML = `<span class="text-[11px] text-slate-400 italic">Semua domisili ditampilkan</span>`;
+                return;
+            }
+
+            const selectedCities = getCityOptionsData().filter(c => c.selected);
+            container.innerHTML = selectedCities.map(c => `
+                <span class="inline-flex items-center gap-1.5 bg-[#fbf3ee] text-[#8a4a35] border border-[#e9c9ba] text-[11px] font-bold pl-2.5 pr-1.5 py-1 rounded-full">
+                    ${c.label}
+                    <button type="button" onclick="toggleCitySelection('${c.value.replace(/'/g, "\\'")}')" class="hover:bg-[#e9c9ba] rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                        <i class="fa-solid fa-xmark text-[9px]"></i>
+                    </button>
+                </span>
+            `).join('');
+        }
+
+        /** Render daftar opsi kota yang cocok dengan kata kunci pencarian saat ini. */
+        function renderCityDropdownItems(query) {
+            const list = document.getElementById('city-dropdown-list');
+            if (!list) return;
+
+            const keyword = (query || '').trim().toLowerCase();
+            const allOptions = getCityOptionsData();
+            // TETAP menampilkan seluruh kota (dari master database) seperti sebelumnya --
+            // pencarian hanya MENYARING baris mana yang ditampilkan, bukan mengganti
+            // sumber datanya. Ketik kosong = seluruh daftar kota tetap terlihat semua.
+            const matches = keyword
+                ? allOptions.filter(c => c.label.toLowerCase().includes(keyword))
+                : allOptions;
+
+            const allRow = `
+                <button type="button" onclick="selectAllCities()"
+                    class="w-full flex items-center gap-2 px-3.5 py-2.5 text-left text-sm font-bold hover:bg-slate-50 transition-colors ${isAllCitiesSelected() ? 'text-[#b85c43]' : 'text-slate-600'}">
+                    <i class="fa-solid ${isAllCitiesSelected() ? 'fa-circle-check' : 'fa-circle'} ${isAllCitiesSelected() ? 'text-[#b85c43]' : 'text-slate-300'}"></i>
+                    Semua Domisili
+                </button>
+            `;
+
+            if (matches.length === 0) {
+                list.innerHTML = allRow + `<div class="px-3.5 py-3 text-xs text-slate-400 italic">Tidak ada kota yang cocok dengan "${escapeHtmlForDisplay(query)}"</div>`;
+                return;
+            }
+
+            const rows = matches.map(c => `
+                <button type="button" onclick="toggleCitySelection('${c.value.replace(/'/g, "\\'")}')"
+                    class="w-full flex items-center gap-2 px-3.5 py-2.5 text-left text-sm font-medium hover:bg-slate-50 transition-colors ${c.selected ? 'text-[#b85c43] font-bold' : 'text-slate-700'}">
+                    <i class="fa-solid ${c.selected ? 'fa-square-check' : 'fa-square'} ${c.selected ? 'text-[#b85c43]' : 'text-slate-300'}"></i>
+                    ${c.label}
+                </button>
+            `).join('');
+
+            list.innerHTML = allRow + rows;
+        }
+
+        function escapeHtmlForDisplay(s) {
+            const div = document.createElement('div');
+            div.textContent = s || '';
+            return div.innerHTML;
+        }
+
+        function handleCitySearchInput(value) {
+            const clearBtn = document.getElementById('city-search-clear-btn');
+            if (clearBtn) clearBtn.classList.toggle('hidden', !value);
+            openCityDropdownList();
+            renderCityDropdownItems(value);
+        }
+
+        function openCityDropdownList() {
+            const list = document.getElementById('city-dropdown-list');
+            if (!list) return;
+            list.classList.remove('hidden');
+            renderCityDropdownItems(document.getElementById('city-search-input')?.value || '');
+        }
+
+        function closeCityDropdownList() {
+            const list = document.getElementById('city-dropdown-list');
+            if (list) list.classList.add('hidden');
+        }
+
+        function clearCityQuery(evt) {
+            if (evt) evt.stopPropagation();
+            const input = document.getElementById('city-search-input');
+            if (input) { input.value = ''; input.focus(); }
+            const clearBtn = document.getElementById('city-search-clear-btn');
+            if (clearBtn) clearBtn.classList.add('hidden');
+            renderCityDropdownItems('');
+        }
+
+        /** Pilih/batalkan satu kota. Memilih kota spesifik otomatis membatalkan "Semua". */
+        function toggleCitySelection(cityValue) {
+            const select = document.getElementById('filter-city');
+            if (!select) return;
+
+            const targetOption = Array.from(select.options).find(o => o.value === cityValue);
+            if (!targetOption) return;
+
+            // Pilih kota spesifik apa pun -> "Semua Domisili" otomatis nonaktif.
+            const allOption = Array.from(select.options).find(o => o.value === 'all');
+            if (allOption) allOption.selected = false;
+
+            targetOption.selected = !targetOption.selected;
+
+            // Kalau setelah toggle ternyata tidak ada satu kota pun yang terpilih,
+            // fallback otomatis balik ke "Semua Domisili" (jangan biarkan tanpa seleksi).
+            const anySelected = Array.from(select.selectedOptions).some(o => o.value !== 'all');
+            if (!anySelected && allOption) allOption.selected = true;
+
+            afterCitySelectionChanged();
+        }
+
+        /** Pilih eksplisit "Semua Domisili" — membatalkan semua kota spesifik. */
+        function selectAllCities() {
+            const select = document.getElementById('filter-city');
+            if (!select) return;
+            Array.from(select.options).forEach(o => { o.selected = (o.value === 'all'); });
+            afterCitySelectionChanged();
+        }
+
+        function afterCitySelectionChanged() {
+            const select = document.getElementById('filter-city');
+            updateSlicerSummary(select);
+            renderCityChips();
+            renderCityDropdownItems(document.getElementById('city-search-input')?.value || '');
+            triggerScreeningFilter();
+        }
+
+        // Tutup daftar dropdown kombobib saat klik di luar area kombobox (tapi <details>
+        // slicer-nya sendiri tetap terbuka -- hanya daftar hasil pencarian yang tertutup).
+        document.addEventListener('click', (e) => {
+            const combobox = document.getElementById('city-combobox');
+            if (combobox && !combobox.contains(e.target)) closeCityDropdownList();
+        });
+        // Esc menutup daftar dropdown tanpa menutup panel slicer.
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeCityDropdownList();
+        });
 
         // Global Keyboard Shortcuts untuk Screening (← Reject, → Shortlist, Space/R Skip)
         document.addEventListener('keydown', (e) => {
